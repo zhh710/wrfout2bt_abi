@@ -4,7 +4,9 @@ module parameters_define
     !
     real(P),parameter::PI=3.141592653589793
     real(P),parameter::DTR=3.1415926/180.
+    real(P),parameter::deg2rad=3.1415926/180.
     real(P),parameter::RTD=1./DTR
+    real(P),parameter::rad2deg=1./DTR
     real(P),parameter::P1000=1000.E2
     real(P),parameter :: CAPA=0.28589641E0
     real(P), parameter :: H1000=1000. 
@@ -17,6 +19,12 @@ module parameters_define
     real(P), parameter :: TFRZ=273.15
     real(P), parameter :: T_ICE=-30.
     real(P), parameter :: TRAD_ice=0.5*T_ICE+TFRZ
+    real(P), parameter :: half=0.5
+    real(P), parameter :: zero=0.0
+
+    INTEGER(INT32), parameter :: one=1
+    !
+    logical::regional=.TRUE.
     !variables in namelist
     character(LEN=40)::wrf_file
     character(LEN=40)::abi_file
