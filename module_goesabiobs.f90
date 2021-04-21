@@ -36,6 +36,7 @@ Module goesabi_obs
     use model_precision,only:P,INT32,DP
     use parameters_define,only:abi_file,abiobs_mid_file,iuseabi,nchanl_abi
     use parameters_define,only:regional
+    use parameters_define,only:deg2rad
     use netcdf
     implicit none
     INTEGER(INT32):: isatid    = 1     ! index of satellite id
@@ -187,6 +188,7 @@ Module goesabi_obs
         ! call w3fs21(idate5,mins_an) !mins_an -integer number of mins snce 01/01/1978
         !
         !LOOP OVER DATA
+        outside = .TRUE.
         DO i=1,nn
             !Check if there is any missing obs. Skip all channels if this is the case
             do cc=1,nchanl_abi
@@ -203,15 +205,15 @@ Module goesabi_obs
             dlat_earth=thislat*deg2rad
             if (regional)then
                ! call tll2xy(dlon_earth,dlat_earth,dlon,dlat,outside)
-                if (outside) then cycle
+                if (outside)  cycle
             else
 
             endif
             !
             !!!!!!!!!!!!!!!!!!!!!!!!SFC
             ! Locate the observation on the analysis grid.  Get sst and land/sea/ice  mask.  
-            call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
-                ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
+            !            call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
+            !    ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
 
         ENDDO
 

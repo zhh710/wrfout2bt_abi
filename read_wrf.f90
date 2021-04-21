@@ -30,7 +30,11 @@ module read_wrf
     real(P),allocatable,dimension(:,:):: vegfrac!  VEGETATION FRACTION,VRGFRAC
     real(P),allocatable,dimension(:,:):: sno!  SNOW WATER EQUIVALENT, SNOW
     real(P),allocatable,dimension(:,:):: si !  PHYSICAL SNOW DEPTH, SNOWH
-    real(P),allocatable,dimension(:,:):: pctsno !  FLAG INDICATING SNOW COVERAGE (1 FOR SNOW COVER)
+    real(P),allocatable,dimension(:,:):: pctsno !  FLAG INDICATING SNOW COVERAGE (1 FOR SNOW COVER),SNOWC
+    real(P),allocatable,dimension(:,:):: ths !  SURFACE SKIN TEMPERATURE,TSK
+    real(P),allocatable,dimension(:,:):: u10,v10 !  U,V at 10 m, U10,V10
+    real(P),allocatable,dimension(:,:):: sice    !  "SEA ICE FLAG, SEAICE
+
 
     ! 1d array allocated in init_wrfinput_array
     real(P),allocatable,dimension(:)::eta1 !eta values on full(w) levels, ZNW,nz_stagger
@@ -51,6 +55,8 @@ module read_wrf
     real(P)::g,r_d,r_v,cp_mass
     real(P)::cp,rd_over_cp_mass
     real(P)::p_top ! PRESSURE TOP OF THE MODEL,Pa
+    real(P)::grid_ratio!  PARENT_GRID_RATIO
+    integer(INT32)::imp_physics !MP_PHYSICS
     !
     public:: load_data,destory_wrfinput_array
     private:: dim_,get_dims,init_wrfinput_array
@@ -114,7 +120,16 @@ module read_wrf
             allocate(sno(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE sno(nx,ny) error"
             allocate(si(nx,ny),stat=istatus)
-            if(istatus/=0)write(6,*)"ALLOCATE si(nx,ny) error"
+            allocate(pctsno(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE pctsno(nx,ny) error"
+            allocate(ths(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE ths(nx,ny) error"
+            allocate(u10(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE u10(nx,ny) error"
+            allocate(v10(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE v10(nx,ny) error"
+            allocate(sice(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE sice(nx,ny) error"
             ! 3d arrays
             !Pressure, Pa
             allocate(pmid(nx,ny,nz),stat=istatus)
@@ -157,6 +172,11 @@ module read_wrf
             deallocate(ivgtyp,stat=istatus)
             deallocate(sno,stat=istatus)
             deallocate(si,stat=istatus)
+            deallocate(pctsno,stat=istatus)
+            deallocate(ths,stat=istatus)
+            deallocate(u10,stat=istatus)
+            deallocate(v10,stat=istatus)
+            deallocate(sice,stat=istatus)
             !
             deallocate(pmid,stat=istatus)
             deallocate(pml,stat=istatus)
@@ -186,6 +206,11 @@ module read_wrf
             call get_ncd_2d_int(ncid,1,"IVGTYP",nx,ny,IVGTYP,istatus)
             call get_ncd_2d(ncid,1,"SNOW",nx,ny,sno,istatus)
             call get_ncd_2d(ncid,1,"SNOWH",nx,ny,si,istatus)
+            call get_ncd_2d(ncid,1,"SNOWC",nx,ny,pctsno,istatus)
+            call get_ncd_2d(ncid,1,"TSK",nx,ny,ths,istatus)
+            call get_ncd_2d(ncid,1,"U10",nx,ny,u10,istatus)
+            call get_ncd_2d(ncid,1,"V10",nx,ny,v10,istatus)
+            call get_ncd_2d(ncid,1,"SEAICE",nx,ny,sice,istatus)
             ! 3d array
             ! READ PRESSURE , Pa
             allocate(tmp1_3d(nx,ny,nz),stat=istatus)
@@ -228,6 +253,9 @@ module read_wrf
             cp_mass = 1004.67
             cp = 1.0046e+3
             rd_over_cp_mass = r_d/cp_mass
+            !
+            istatus = nf90_get_att(ncid,nf90_global,"PARENT_GRID_RATIO",grid_ratio)
+            istatus = nf90_get_att(ncid,nf90_global,"MP_PHYSICS",imp_physics)
 
 
         end subroutine get_base_value
