@@ -1,5 +1,6 @@
 #ODAS_Binary_IO.o : ODAS_Binary_IO.f90 ODAS_Define.o Binary_File_Utility.o File_Utility.o Message_Handler.o Type_Kinds.o 
-wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o
+wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o module_goesabiobs.o
 module_precision.mod : module_precision.f90
-read_wrf.o : read_wrf.f90 wrf_ncd_io.o module_precision.o
+read_wrf.o : read_wrf.f90  module_precision.o
 load_parameters.o : load_parameters.f90 module_precision.o
+module_goesabiobs.o : module_goesabiobs.f90  module_precision.o load_parameters.o
