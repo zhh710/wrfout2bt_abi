@@ -35,6 +35,7 @@ Module goesabi_obs
 
     use model_precision,only:P,INT32,DP
     use parameters_define,only:abi_file,abiobs_mid_file,iuseabi,nchanl_abi
+    use parameters_define,only:regional
     use netcdf
     implicit none
     INTEGER(INT32):: isatid    = 1     ! index of satellite id
@@ -109,8 +110,14 @@ Module goesabi_obs
         INTEGER(INT32)   :: kidsat
         !
         INTEGER(INT32)::nreal,nele
-        INTEGER(INT32)::ii,itx
+        INTEGER(INT32)::ii,itx,cc,i ! loop index
         INTEGER(INT32)::ndata !number of profiles retained for further processing
+        !
+        real(P)::thislon,thislat
+        real(P)::dlon_earth,dlat_earth
+        real(P)::dlon,dlat
+        !
+        LOGICAL::outside
         !!!!!!!!!!!!
         ! OPEN NETCDF FILE
         istatus = nf90_open(TRIM(abi_file), NF90_NOWRITE, ncdfID)
@@ -178,6 +185,35 @@ Module goesabi_obs
         ndata=0
         ! CHECK TIME WINDOW: ALL OBSERVATIONS HAVE THE SAME TIME
         ! call w3fs21(idate5,mins_an) !mins_an -integer number of mins snce 01/01/1978
+        !
+        !LOOP OVER DATA
+        DO i=1,nn
+            !Check if there is any missing obs. Skip all channels if this is the case
+            do cc=1,nchanl_abi
+                if (tb(i,cc) /= tb(i,cc)) then
+                    cycle
+                endif
+            enddo
+            ! Convert obs location from degrees to radians
+            thislon=lon(i)
+            thislat=lat(i)
+            if (thislon >= 360.) thislon=thislon-360.
+            if (thislon < 0.)  thislon=thislon+360.
+            dlon_earth=thislon*deg2rad
+            dlat_earth=thislat*deg2rad
+            if (regional)then
+               ! call tll2xy(dlon_earth,dlat_earth,dlon,dlat,outside)
+                if (outside) then cycle
+            else
+
+            endif
+            !
+            !!!!!!!!!!!!!!!!!!!!!!!!SFC
+            ! Locate the observation on the analysis grid.  Get sst and land/sea/ice  mask.  
+            call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
+                ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
+
+        ENDDO
 
 
 
