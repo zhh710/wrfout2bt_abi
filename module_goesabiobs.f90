@@ -37,6 +37,7 @@ Module goesabi_obs
     use parameters_define,only:abi_file,abiobs_mid_file,iuseabi,nchanl_abi
     use parameters_define,only:regional
     use parameters_define,only:deg2rad
+    use gridmod,only:tll2xy
     use netcdf
     implicit none
     INTEGER(INT32):: isatid    = 1     ! index of satellite id
@@ -188,6 +189,9 @@ Module goesabi_obs
         ! call w3fs21(idate5,mins_an) !mins_an -integer number of mins snce 01/01/1978
         !
         !LOOP OVER DATA
+        !print*,"lat of obs : ",minval(lat),maxval(lat)
+        !rint*,"lon of obs : ",minval(lon),maxval(lon)
+
         outside = .TRUE.
         DO i=1,nn
             !Check if there is any missing obs. Skip all channels if this is the case
@@ -204,7 +208,7 @@ Module goesabi_obs
             dlon_earth=thislon*deg2rad
             dlat_earth=thislat*deg2rad
             if (regional)then
-               ! call tll2xy(dlon_earth,dlat_earth,dlon,dlat,outside)
+                call tll2xy(dlon_earth,dlat_earth,dlon,dlat,outside)
                 if (outside)  cycle
             else
 

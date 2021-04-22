@@ -1,5 +1,6 @@
 use model_precision,only: print_precision
 use parameters_define,only:read_nml
+use read_wrf,only:lat,lon,rlats,rlons
 use read_wrf,only:load_data,destory_wrfinput_array
 use read_wrf,only:oz,u,v,qv,psfc,pmid,pml
 use read_wrf,only:eta1,eta2
@@ -15,7 +16,10 @@ use  goesabi_obs,only:read_goesabi_netcdf
 call print_precision()
 call read_nml("input.namelist")
 call load_data()
-print*,"MODEL TOP PRESSURE: ",p_top
+print*,"min/max of XLAT: ",minval(lat),maxval(lat)
+print*,"min/max of XLONG: ",minval(lon),maxval(lon)
+print*,"min/max of radian XLAT: ",minval(rlats),maxval(rlats)
+print*,"min/max of radian XLONG: ",minval(rlons),maxval(rlons)
 print*,"min/max of O3RAD: ",minval(oz),maxval(oz)
 print*,"min/max of u: ",minval(u),maxval(u)
 print*,"min/max of v: ",minval(v),maxval(v)

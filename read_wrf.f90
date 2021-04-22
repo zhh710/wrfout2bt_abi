@@ -2,6 +2,7 @@ module read_wrf
     USE model_precision
     USE netcdf
     use parameters_define,only:wrf_file
+    use parameters_define,only:deg2rad
     implicit none
     !3d arrays allocated in init_wrfinput_array
     real(P),allocatable,dimension(:,:,:)::pmid! pressure at mass levels, Pa
@@ -23,7 +24,8 @@ module read_wrf
     real(P),allocatable,dimension(:,:,:)::qns ! QSNOW, kg-1
     real(P),allocatable,dimension(:,:,:)::oz  ! ppmv
     !2d arrays allocated in init_wrfinput_array
-    real(P),allocatable,dimension(:,:)::lon,lat ! degree
+    real(P),allocatable,dimension(:,:)::lon,lat   ! degree
+    real(P),allocatable,dimension(:,:)::rlons,rlats ! radian
     real(P),allocatable,dimension(:,:)::psfc    ! SFC PRESSURE,Pa,PSFC
     real(P),allocatable,dimension(:,:)::czen    ! cos(solar zenith angle),COSCEN
     integer(INT32),allocatable,dimension(:,:)::ivgtyp  ! VEGETATION CATEGORY,IVGTYP
@@ -109,6 +111,10 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE lat(nx,ny) error"
             allocate(lon(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE lon(nx,ny) error"
+            allocate(rlats(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE rlats(nx,ny) error"
+            allocate(rlons(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE rlons(nx,ny) error"
             allocate(psfc(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE psfc(nx,ny) error"
             allocate(czen(nx,ny),stat=istatus)
@@ -166,6 +172,8 @@ module read_wrf
             !
             deallocate(lat,stat=istatus)
             deallocate(lon,stat=istatus)
+            deallocate(rlats,stat=istatus)
+            deallocate(rlons,stat=istatus)
             deallocate(psfc,stat=istatus)
             deallocate(czen,stat=istatus)
             deallocate(vegfrac,stat=istatus)
@@ -200,6 +208,8 @@ module read_wrf
             !2d array
             call get_ncd_2d(ncid,1,"XLAT",nx,ny,lat,istatus)
             call get_ncd_2d(ncid,1,"XLONG",nx,ny,lon,istatus)
+            rlats = lat*deg2rad
+            rlons = lon*deg2rad
             call get_ncd_2d(ncid,1,"PSFC",nx,ny,psfc,istatus)
             call get_ncd_2d(ncid,1,"COSZEN",nx,ny,czen,istatus)
             call get_ncd_2d(ncid,1,"VEGFRA",nx,ny,vegfrac,istatus)
