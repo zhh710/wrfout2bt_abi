@@ -1,4 +1,4 @@
-! Adapted from GSI grdcrd.f90
+! Adapted from GSI grdcrd.f90 4/22/2021
 subroutine grdcrd1(d,x,nx,flg)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
@@ -26,8 +26,8 @@ subroutine grdcrd1(d,x,nx,flg)
 !   machine:  ibm RS/6000 SP
 !
 !$$$
-  use kinds, only: r_kind,i_kind
-  use constants, only: one
+  use model_precision, only: r_kind,i_kind
+  use parameters_define, only: one
   implicit none
 
   integer(i_kind)           ,intent(in   ) :: nx
