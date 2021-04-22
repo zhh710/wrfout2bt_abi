@@ -1,16 +1,16 @@
 ! Adapted from GSI gridmod.F90, 4/21/2021
 module gridmod
-    use model_precision,only:P,INT32
+    use model_precision,only:P,INT32,INT16
     use parameters_define,only:pi,half,deg2rad,one,zero
-    use read_wrf,only::nx,ny,lat,lon
+    use read_wrf,only:nx,ny,rlats,rlons,grid_ratio
     implicit none
    ! rlambda0 : Calculate in get_xytilde_domain
    ! sign_pole: Calculate in get_xytilde_domain
    ! pihalf   : Calculate in init_general_transform
    ! atilde_x : Calculate in init_general_transform
 ! The following is for the generalized transform
-    integer(INT32)::nlon=nx
-    integer(INT32)::nlat=ny
+    integer(INT32)::nlon
+    integer(INT32)::nlat
     real(P) pihalf,sign_pole,rlambda0
     real(P) atilde_x,btilde_x,atilde_y,btilde_y
     real(P) btilde_xinv,btilde_yinv
@@ -19,6 +19,9 @@ module gridmod
     real(P),allocatable::cos_beta_ref(:,:),sin_beta_ref(:,:)
     integer(INT32),allocatable::i0_tilde(:,:),j0_tilde(:,:)
     integer(INT16),allocatable::ip_tilde(:,:),jp_tilde(:,:)
+    private
+    public::tll2xy
+    public::destory_spec_vars
     contains
 !
 subroutine destory_spec_vars()
@@ -28,8 +31,8 @@ subroutine destory_spec_vars()
     deallocate(sin_beta_ref)
     deallocate(i0_tilde)
     deallocate(j0_tilde)
-    deallocate(ip_tilde(:,:))
-    deallocate(jp_tilde(:,:))
+    deallocate(ip_tilde)
+    deallocate(jp_tilde)
 end subroutine destory_spec_vars
 !
 !tll2xy --- convert earth lon-lat to x-y grid coordinates
@@ -64,11 +67,26 @@ subroutine tll2xy(rlon,rlat,x,y,outside)
     real(P):: d1tilde,d2tilde,e1tilde,e2tilde,detinv
     integer(INT32):: itilde,jtilde
     integer(INT32):: i0,j0,ip,jp
+    real(P)::r1_5=1.5
+    real(P)::rlon_min_ll,rlat_min_ll
+    real(P)::rlon_max_ll,rlat_max_ll
+    real(P)::rlon_min_dd,rlat_min_dd
+    real(P)::rlon_max_dd,rlat_max_dd
+!!!!!!!!!1
 ! if arrays are ready
-    if(.not. allocated(i0_tilde)then
-        call  init_general_transform(lat,lon)
+    if(.not. allocated(i0_tilde))then
+        call  init_general_transform(rlats,rlons)
     endif
 
+!
+       rlon_min_ll=one
+       rlat_min_ll=one
+       rlon_max_ll=nlon
+       rlat_max_ll=nlat
+       rlat_min_dd=rlat_min_ll+r1_5/grid_ratio
+       rlat_max_dd=rlat_max_ll-r1_5/grid_ratio
+       rlon_min_dd=rlon_min_ll+r1_5/grid_ratio
+       rlon_max_dd=rlon_max_ll-r1_5/grid_ratio
 !   first compute xtilde, ytilde
 
     clon=cos(rlon+rlambda0)
@@ -110,7 +128,6 @@ subroutine tll2xy(rlon,rlat,x,y,outside)
  end subroutine tll2xy
 
 
-end subroutine tll2xy
 !-------------------------------------------------------------------------------
  subroutine nearest_3(ilast,jlast,i0,j0,ip,jp,x,y,nx0,ny0,x0,y0)
 !$$$  subprogram documentation block
@@ -327,7 +344,7 @@ end subroutine tll2xy
      end do
   end do
   delbar=zero
-  count =zero
+  icount =zero
   do j=1,ny0-1
      jp1=j+1
      do i=1,nx0-1
@@ -391,7 +408,7 @@ end subroutine tll2xy
 
   implicit none
 
-  real(P)   ,intent(in   ) :: glats(nlon,nlat),glons(nlon,nlat)
+  real(P)   ,intent(in   ) :: glats(nx,ny),glons(nx,ny)
 
   real(P),parameter:: rbig =1.0e30_P
   real(P) xbar_min,xbar_max,ybar_min,ybar_max
@@ -408,6 +425,8 @@ end subroutine tll2xy
 
   pihalf=half*pi
 
+ nlon = nx
+ nlat = ny
 !  define xtilde, ytilde grid, transform
 
 !      glons,glats are lons, lats of input grid points of dimension nlon,nlat
