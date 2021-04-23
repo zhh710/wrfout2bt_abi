@@ -76,7 +76,6 @@ Module goesabi_obs
     INTEGER(INT32):: ilate     = 31    ! index of earth relative latitude (degrees)
     INTEGER(INT32):: iassim    = 32    ! 0:not assimilate
     !
-    real(P),allocatable,dimension(:,:)::data_abi
     integer(INT32)::nabiobs
     contains
     !
@@ -89,6 +88,7 @@ Module goesabi_obs
         !
         character(4)  idate5s(5)
         INTEGER(INT32)::idate5(5),mins_an
+        real(P),allocatable,dimension(:,:)::data_abi
         !
          character(20)  :: isis="abi_g16"
          character(10)  :: obstype="abi"
@@ -290,30 +290,25 @@ Module goesabi_obs
         DEALLOCATE( sataz)
         DEALLOCATE( cmask)
         DEALLOCATE( tb )
+        if(allocated(data_abi))deallocate(data_abi)
 
     end subroutine read_goesabi_netcdf
     !
-    subroutine destory_abiobs_array()
-        
-        deallocate(data_abi)
-
-    end subroutine destory_abiobs_array
-
     ! read abi obs array from file "abiobs_mid_file"
-    subroutine read_abiobsarray_from_file()
+    subroutine read_abiobsarray_from_file(dy_array)
         implicit none
         character(10)::obstype
         character(20)::isis
         integer(INT32)::ndata,nchanl,nreal,ilat,ilon
         integer(INT32)::k,n,nele
         integer(INT32)::istatus
-        real(r_kind),allocatable,dimension(:,:)::data_abi
+        real(r_kind),allocatable,dimension(:,:)::dy_array
         !
         open(998,file=abiobs_mid_file,form="unformatted",status="old")
-        read(998)obstype,isis,nreal,nchanl_abi,ilat,ilon,ndata
+        read(998)obstype,isis,nreal,nchanl,ilat,ilon,ndata
         nele = nreal + nchanl
-        allocate(data_abi(nele,ndata),stat=istatus)
-        read(998)((data_abi(k,n),k=1,nele),n=1,ndata)
+        allocate(dy_array(nele,ndata),stat=istatus)
+        read(998)((dy_array(k,n),k=1,nele),n=1,ndata)
         close(998)
         
     end subroutine

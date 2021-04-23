@@ -22,6 +22,10 @@ use  goesabi_obs,only:read_goesabi_netcdf
 use  goesabi_obs,only:data_abi,nabiobs
 use  goesabi_obs,only:destory_abiobs_array
 use  goesabi_obs,only:read_abiobsarray_from_file
+!
+implicit none
+real,allocatable,dimension(:,:)::temp1_2d
+
 call print_precision()
 call read_nml("input.namelist")
 call load_data()
@@ -60,6 +64,10 @@ print*,"MP_PHYSICS:",imp_physics
 !
 call read_goesabi_netcdf()
 print*,"min/max of tb channel 7 ",minval(data_abi(36,1:nabiobs)),maxval(data_abi(36,1:nabiobs))
+call destory_abiobs_array()
+call read_abiobsarray_from_file(temp1_2d)
+print*,"min/max of tb channel 7 ",minval(temp1_2d(36,:)),maxval(temp1_2d(36,:))
+call destory_abiobs_array()
 call destory_wrfinput_array()
 
 end program
