@@ -36,7 +36,7 @@ Module goesabi_obs
     use model_precision,only:P,INT32,DP,r_kind,i_kind
     use parameters_define,only:abi_file,abiobs_mid_file,iuseabi,nchanl_abi
     use parameters_define,only:regional
-    use parameters_define,only:deg2rad
+    use parameters_define,only:deg2rad,rad2deg
     use gridmod,only:tll2xy
     use read_wrf,only:iwinbgn
     use w3nco,only:W3FS21
@@ -76,7 +76,8 @@ Module goesabi_obs
     INTEGER(INT32):: ilate     = 31    ! index of earth relative latitude (degrees)
     INTEGER(INT32):: iassim    = 32    ! 0:not assimilate
     !
-    real(P),allocatable,dimension(:,:)::abi_data
+    real(P),allocatable,dimension(:,:)::data_abi
+    integer(INT32)::nabiobs
     contains
     !
     subroutine read_goesabi_netcdf()
@@ -89,7 +90,9 @@ Module goesabi_obs
         character(4)  idate5s(5)
         INTEGER(INT32)::idate5(5),mins_an
         !
-        real(DP),dimension(12) :: dataabi
+         character(20)  :: isis="abi_g16"
+         character(10)  :: obstype="abi"
+        !
         !------------------
         !  NETCDF-RELATED
         !------------------
@@ -115,7 +118,7 @@ Module goesabi_obs
         INTEGER(INT32)   :: kidsat
         !
         INTEGER(INT32)::nreal,nele
-        INTEGER(INT32)::ii,itx,cc,i ! loop index
+        INTEGER(INT32)::ii,itx,cc,i,n,k ! loop index
         INTEGER(INT32)::ndata !number of profiles retained for further processing
         !
         real(P)::thislon,thislat
@@ -143,8 +146,6 @@ Module goesabi_obs
         istatus = nf90_get_att( ncdfID, nf90_global, 'minute', idate5s(5) )
         istatus = nf90_get_att( ncdfID, nf90_global, 'satellite', Satellite )
         read(idate5s(:) , *) idate5(:)
-        print*,idate5
-        print*,"Satellite:",satellite
         !
         ! Get Dimension Info (1-D)
         istatus = nf90_inq_varid( ncdfID, 'numobs', varID )
@@ -192,7 +193,7 @@ Module goesabi_obs
         !! Allocate arrays to hold all data for given satellite 
         nreal = maxinfo
         nele = nreal + nchanl_abi
-        allocate(abi_data(nele,nn),stat=istatus)
+        allocate(data_abi(nele,nn),stat=istatus)
         !
         itx=1
         ndata=0
@@ -228,12 +229,94 @@ Module goesabi_obs
             ! Locate the observation on the analysis grid.  Get sst and land/sea/ice  mask.  
                         call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
                 ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
+            !       Transfer information to work array
+            data_abi( 1,itx) = kidsat                    ! satellite id
+            data_abi( 2,itx) = t4dv                       ! analysis relative time
+            data_abi( 3,itx) = dlon                       ! grid relative longitude
+            data_abi( 4,itx) = dlat                       ! grid relative latitude
+            data_abi( 5,itx) = vza(i)*deg2rad             ! satellite zenith angle (radians)
+            data_abi( 6,itx) = sataz(i)*deg2rad           ! satellite azimuth angle (radians)
+            if ( cmask(i) == 0 ) data_abi( 7,itx) = 1.0    !clear
+            if ( cmask(i) == 1 ) data_abi( 7,itx) = 0.0    !cloud
+            data_abi( 8,itx) =  0.                     ! integer scan position,not use
+            data_abi( 9,itx) = sza(i)                     ! solar zenith angle
+            data_abi(10,itx) = solaz(i)                   ! solar azimuth angle
+            data_abi(11,itx) = sfcpct(0)                  ! sea percentage of
+            data_abi(12,itx) = sfcpct(1)                  ! land percentage
+            data_abi(13,itx) = sfcpct(2)                  ! sea ice percentage
+            data_abi(14,itx) = sfcpct(3)                  ! snow percentage
+            data_abi(15,itx)= ts(0)                       ! ocean skin temperature
+            data_abi(16,itx)= ts(1)                       ! land skin temperature
+            data_abi(17,itx)= ts(2)                       ! ice skin temperature
+            data_abi(18,itx)= ts(3)                       ! snow skin temperature
+            data_abi(19,itx)= tsavg                       ! average skin temperature
+            data_abi(20,itx)= vty                         ! vegetation type
+            data_abi(21,itx)= vfr                         ! vegetation fraction
+            data_abi(22,itx)= sty                         ! soil type
+            data_abi(23,itx)= stp                         ! soil temperature
+            data_abi(24,itx)= sm                          ! soil moisture
+            data_abi(25,itx)= sn                          ! snow depth
+            data_abi(26,itx)= zz                          ! surface height
+            data_abi(27,itx)= idomsfc + 0.001_r_kind      ! dominate surface type
+            data_abi(28,itx)= sfcr                        ! surface roughness
+            data_abi(29,itx)= ff10                        ! ten meter wind factor
+            data_abi(30,itx)= dlon_earth*rad2deg          ! earth relative longitude (degrees)
+            data_abi(31,itx)= dlat_earth*rad2deg          ! earth relative latitude (degrees)
+
+            data_abi(32,itx)=  1.         ! 
+            !       Transfer observation location and other data to local arrays
+            do k=1,nchanl_abi
+                data_abi(k+nreal,itx) = tb(i,k)
+            enddo
+            ndata = ndata + 1
+            itx = itx + 1
 
         ENDDO
-
-
+        ! store in file
+        if(ndata >0 )then
+            open(998,file=abiobs_mid_file,form="unformatted",status="replace")
+            write(998)obstype,isis,nreal,nchanl_abi,ilat,ilon,ndata
+            write(998)((data_abi(k,n),k=1,nele),n=1,ndata)
+            close(998)
+        endif
+        !
+        nabiobs = ndata
+        !
+        DEALLOCATE( lat )
+        DEALLOCATE( lon )
+        DEALLOCATE( sza )
+        DEALLOCATE( vza )
+        DEALLOCATE( solaz )
+        DEALLOCATE( sataz)
+        DEALLOCATE( cmask)
+        DEALLOCATE( tb )
 
     end subroutine read_goesabi_netcdf
+    !
+    subroutine destory_abiobs_array()
+        
+        deallocate(data_abi)
+
+    end subroutine destory_abiobs_array
+
+    ! read abi obs array from file "abiobs_mid_file"
+    subroutine read_abiobsarray_from_file()
+        implicit none
+        character(10)::obstype
+        character(20)::isis
+        integer(INT32)::ndata,nchanl,nreal,ilat,ilon
+        integer(INT32)::k,n,nele
+        integer(INT32)::istatus
+        real(r_kind),allocatable,dimension(:,:)::data_abi
+        !
+        open(998,file=abiobs_mid_file,form="unformatted",status="old")
+        read(998)obstype,isis,nreal,nchanl_abi,ilat,ilon,ndata
+        nele = nreal + nchanl
+        allocate(data_abi(nele,ndata),stat=istatus)
+        read(998)((data_abi(k,n),k=1,nele),n=1,ndata)
+        close(998)
+        
+    end subroutine
 
 
 END Module goesabi_obs

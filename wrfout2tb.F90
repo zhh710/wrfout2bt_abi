@@ -19,6 +19,9 @@ use read_wrf,only:p_top
 use read_wrf,only:grid_ratio,imp_physics
 !
 use  goesabi_obs,only:read_goesabi_netcdf
+use  goesabi_obs,only:data_abi,nabiobs
+use  goesabi_obs,only:destory_abiobs_array
+use  goesabi_obs,only:read_abiobsarray_from_file
 call print_precision()
 call read_nml("input.namelist")
 call load_data()
@@ -56,6 +59,7 @@ print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics
 !
 call read_goesabi_netcdf()
+print*,"min/max of tb channel 7 ",minval(data_abi(36,1:nabiobs)),maxval(data_abi(36,1:nabiobs))
 call destory_wrfinput_array()
 
 end program
