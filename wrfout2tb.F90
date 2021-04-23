@@ -5,9 +5,14 @@ use read_wrf,only:load_data,destory_wrfinput_array
 use read_wrf,only:oz,u,v,qv,psfc,pmid,pml
 use read_wrf,only:eta1,eta2
 use read_wrf,only:czen,vegfrac,ivgtyp
-use read_wrf,only:sno,si,pctsno
+use read_wrf,only:isltyp
+use read_wrf,only:sno_full,si,pctsno
+use read_wrf,only:soil_moi_full,soil_temp_full
+use read_wrf,only:sfc_rough_full
+use read_wrf,only:idomsfc
 use read_wrf,only:ths
 use read_wrf,only:sice
+use read_wrf,only:zs_full
 use read_wrf,only:u10,v10
 use read_wrf,only:p_top
 use read_wrf,only:grid_ratio,imp_physics
@@ -31,13 +36,19 @@ print*,"min/max of COSZEN: ",minval(czen),maxval(czen)
 print*,"min/max of ZEN: ",acos(minval(czen))*180/3.14,acos(maxval(czen))*180/3.14
 print*,"min/max of VEGFRAC: ",minval(vegfrac),maxval(vegfrac)
 print*,"min/max of IVGTYP: ",minval(ivgtyp),maxval(ivgtyp)
-print*,"min/max of SNOW: ",minval(sno),maxval(sno)
+print*,"min/max of islTYP: ",minval(isltyp),maxval(isltyp)
+print*,"min/max of SNOW: ",minval(sno_full),maxval(sno_full)
 print*,"min/max of SNOWH: ",minval(si),maxval(si)
 print*,"min/max of SNOWC: ",minval(pctsno),maxval(pctsno)
 print*,"min/max of TSK: ",minval(ths),maxval(ths)
 print*,"min/max of u10: ",minval(u10),maxval(u10)
 print*,"min/max of v10: ",minval(v10),maxval(v10)
 print*,"min/max of SEAICE: ",minval(sice),maxval(sice)
+print*,"min/max of HGT: ",minval(zs_full),maxval(zs_full)
+print*,"min/max of SIOL MOISTURE: ",minval(soil_moi_full),maxval(soil_moi_full)
+print*,"min/max of SIOL TEMPERATURE: ",minval(soil_temp_full),maxval(soil_temp_full)
+print*,"min/max of SURFACE roughness: ",minval(sfc_rough_full),maxval(sfc_rough_full)
+print*,"min/max of water,land ,sea ice,snow: ",minval(idomsfc),maxval(idomsfc)
 print*,"P top:",p_top
 print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics

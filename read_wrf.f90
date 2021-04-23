@@ -29,13 +29,27 @@ module read_wrf
     real(P),allocatable,dimension(:,:)::psfc    ! SFC PRESSURE,Pa,PSFC
     real(P),allocatable,dimension(:,:)::czen    ! cos(solar zenith angle),COSCEN
     integer(INT32),allocatable,dimension(:,:)::ivgtyp  ! VEGETATION CATEGORY,IVGTYP
+    integer(INT32),allocatable,dimension(:,:)::isltyp  ! DOMINANT SOIL CATEGORY
     real(P),allocatable,dimension(:,:):: vegfrac!  VEGETATION FRACTION,VRGFRAC
-    real(P),allocatable,dimension(:,:):: sno!  SNOW WATER EQUIVALENT, SNOW
+    real(P),allocatable,dimension(:,:):: sno_full!  SNOW WATER EQUIVALENT, SNOW
     real(P),allocatable,dimension(:,:):: si !  PHYSICAL SNOW DEPTH, SNOWH
     real(P),allocatable,dimension(:,:):: pctsno !  FLAG INDICATING SNOW COVERAGE (1 FOR SNOW COVER),SNOWC
     real(P),allocatable,dimension(:,:):: ths !  SURFACE SKIN TEMPERATURE,TSK
     real(P),allocatable,dimension(:,:):: u10,v10 !  U,V at 10 m, U10,V10
     real(P),allocatable,dimension(:,:):: sice    !  "SEA ICE FLAG, SEAICE
+    real(P),allocatable,dimension(:,:):: zs_full    !  Terrain Height, HGT
+    real(P),allocatable,dimension(:,:):: sst_full   !  SEA SKIN TEMPERATURE, SST
+    real(P),allocatable,dimension(:,:):: soil_moi_full   !  soil moisture of first layer,SMOIS
+    real(P),allocatable,dimension(:,:):: soil_temp_full  !  soil temperature of first layer,TSLB
+    real(P),allocatable,dimension(:,:):: sfc_rough_full  !  Surface roughness, in TANDUSE.TBL, units:M
+    !
+    REAL(P),allocatable,dimension(:,:):: idomsfc 
+    !!     idomsfc  - dominate surface type
+    !                0 sea
+    !                1 land
+    !                2 sea ice
+    !                3 snow
+
 
 
     ! 1d array allocated in init_wrfinput_array
@@ -44,7 +58,7 @@ module read_wrf
     ! 
     !parameters read in get_dims()
     integer(INT32),private::ncid
-    integer(INT32)::nx,ny,nz
+    integer(INT32)::nx,ny,nz,nzsoil
     integer(INT32)::nx_stagger,ny_stagger,nz_stagger
     real(P)::ctrlat, ctrlon, trulat1, trulat2, trulon
     integer(INT32)::iproj
@@ -59,6 +73,9 @@ module read_wrf
     real(P)::p_top ! PRESSURE TOP OF THE MODEL,Pa
     real(P)::grid_ratio!  PARENT_GRID_RATIO
     integer(INT32)::imp_physics !MP_PHYSICS
+    character(LEN=50)::mminlu
+    integer(INT32)::JULDAY !JULDAY
+    integer(INT32)::JULYR !JULYR
     !
     public:: load_data,destory_wrfinput_array
     private:: dim_,get_dims,init_wrfinput_array
@@ -70,7 +87,7 @@ module read_wrf
             character(len=*),intent(in)::wrf_file
             character(len=1)::filemode='r'
             integer(INT32)::istatus
-            integer(INT32)::nzsoil,nstyps,nscalar
+            integer(INT32)::nstyps,nscalar
             integer(INT32)::P_QC,P_QR,P_QI,P_QS,P_QG,P_QH
             integer(INT32)::P_NC,P_NR,P_NI,P_NS,P_NG,P_NH
             integer(INT32)::P_ZR,P_ZI,P_ZS,P_ZG,P_ZH,P_NCCN
@@ -121,10 +138,12 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE czen(nx,ny) error"
             allocate(ivgtyp(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE ivgtyp(nx,ny) error"
+            allocate(isltyp(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE isltyp(nx,ny) error"
             allocate(vegfrac(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE vegfrac(nx,ny) error"
-            allocate(sno(nx,ny),stat=istatus)
-            if(istatus/=0)write(6,*)"ALLOCATE sno(nx,ny) error"
+            allocate(sno_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE sno_full(nx,ny) error"
             allocate(si(nx,ny),stat=istatus)
             allocate(pctsno(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE pctsno(nx,ny) error"
@@ -136,6 +155,19 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE v10(nx,ny) error"
             allocate(sice(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE sice(nx,ny) error"
+            allocate(zs_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE zs_full(nx,ny) error"
+            allocate(sst_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE sst_full(nx,ny) error"
+            allocate(soil_moi_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE soil_moi_full(nx,ny) error"
+            allocate(soil_temp_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE soil_temp_full(nx,ny) error"
+            allocate(sfc_rough_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE sfc_rough_full(nx,ny) error"
+            allocate(idomsfc(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE idomsfc(nx,ny) error"
+
             ! 3d arrays
             !Pressure, Pa
             allocate(pmid(nx,ny,nz),stat=istatus)
@@ -178,13 +210,20 @@ module read_wrf
             deallocate(czen,stat=istatus)
             deallocate(vegfrac,stat=istatus)
             deallocate(ivgtyp,stat=istatus)
-            deallocate(sno,stat=istatus)
+            deallocate(isltyp,stat=istatus)
+            deallocate(sno_full,stat=istatus)
             deallocate(si,stat=istatus)
             deallocate(pctsno,stat=istatus)
             deallocate(ths,stat=istatus)
             deallocate(u10,stat=istatus)
             deallocate(v10,stat=istatus)
             deallocate(sice,stat=istatus)
+            deallocate(zs_full,stat=istatus)
+            deallocate(sst_full,stat=istatus)
+            deallocate(soil_moi_full,stat=istatus)
+            deallocate(soil_temp_full,stat=istatus)
+            deallocate(sfc_rough_full,stat=istatus)
+            deallocate(idomsfc,stat=istatus)
             !
             deallocate(pmid,stat=istatus)
             deallocate(pml,stat=istatus)
@@ -201,6 +240,7 @@ module read_wrf
             integer(INT32)::istatus
             !local  array 
             real(P),allocatable,dimension(:,:,:)::tmp1_3d,tmp2_3d
+            real(P),allocatable,dimension(:,:,:)::tmp1_2d,tmp2_2d
             call init_wrfinput_array()
             !1d array
             call get_ncd_1d(ncid,1,"ZNW",nz_stagger,eta1,istatus)
@@ -214,13 +254,33 @@ module read_wrf
             call get_ncd_2d(ncid,1,"COSZEN",nx,ny,czen,istatus)
             call get_ncd_2d(ncid,1,"VEGFRA",nx,ny,vegfrac,istatus)
             call get_ncd_2d_int(ncid,1,"IVGTYP",nx,ny,IVGTYP,istatus)
-            call get_ncd_2d(ncid,1,"SNOW",nx,ny,sno,istatus)
+            call get_ncd_2d_int(ncid,1,"ISLTYP",nx,ny,ISLTYP,istatus)
+            call get_ncd_2d(ncid,1,"SNOW",nx,ny,sno_full,istatus)
             call get_ncd_2d(ncid,1,"SNOWH",nx,ny,si,istatus)
             call get_ncd_2d(ncid,1,"SNOWC",nx,ny,pctsno,istatus)
             call get_ncd_2d(ncid,1,"TSK",nx,ny,ths,istatus)
             call get_ncd_2d(ncid,1,"U10",nx,ny,u10,istatus)
             call get_ncd_2d(ncid,1,"V10",nx,ny,v10,istatus)
             call get_ncd_2d(ncid,1,"SEAICE",nx,ny,sice,istatus)
+            call get_ncd_2d(ncid,1,"HGT",nx,ny,zs_full,istatus)
+            call get_ncd_2d(ncid,1,"SST",nx,ny,sst_full,istatus)
+            ! SOIL MOI
+            allocate(tmp1_3d(nx,ny,nz),stat=istatus)
+            call get_ncd_3d(ncid,1,"SMOIS",nx,ny,nzsoil,tmp1_3d,istatus)
+            soil_moi_full = tmp1_3d(:,:,1)
+            deallocate(tmp1_3d)
+            ! SOIL TEMP 
+            allocate(tmp1_3d(nx,ny,nz),stat=istatus)
+            call get_ncd_3d(ncid,1,"TSLB",nx,ny,nzsoil,tmp1_3d,istatus)
+            soil_temp_full = tmp1_3d(:,:,1)
+            deallocate(tmp1_3d)
+            ! SURFACE ROUGHNESS 
+            print*,mminlu,julday
+            call da_roughness_from_lanu(996, mminlu, julday, ivgtyp, sfc_rough_full,nx,ny)
+            ! water,land,sea ice,snow
+            call get_ncd_2d(ncid,1,"LANDMASK",nx,ny,idomsfc,istatus)
+            where (pctsno >0.0) idomsfc = 3
+            where (sice >0.0) idomsfc = 2
             ! 3d array
             ! READ PRESSURE , Pa
             allocate(tmp1_3d(nx,ny,nz),stat=istatus)
@@ -266,6 +326,9 @@ module read_wrf
             !
             istatus = nf90_get_att(ncid,nf90_global,"PARENT_GRID_RATIO",grid_ratio)
             istatus = nf90_get_att(ncid,nf90_global,"MP_PHYSICS",imp_physics)
+            istatus = nf90_get_att(ncid,nf90_global,"MMINLU",mminlu)
+            istatus = nf90_get_att(ncid,nf90_global,"JULDAY",JULDAY)
+            istatus = nf90_get_att(ncid,nf90_global,"JULYR",JULYR)
 
 
         end subroutine get_base_value

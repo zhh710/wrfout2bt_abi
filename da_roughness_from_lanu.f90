@@ -1,7 +1,7 @@
 ! Adapted from WRF/var/da/da_physics/da_roughness_from_lanu.inc 4/22/2021
 ! : Get surface roughness
 ! : it can be got in wrfoutput file if edit Registry/Registry.EM_COMMON
-subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough,nx,ny)
+subroutine da_roughness_from_lanu(ltbl, mminlu, Julday, lanu, rough,nx,ny)
 
    !-----------------------------------------------------------------------
    ! Purpose: TBD
@@ -11,14 +11,15 @@ subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough,nx,ny)
    implicit none
 
    integer             ,   intent(in)    :: ltbl
+   integer             ,   intent(in)    :: nx,ny
+   integer             ,   intent(in)    :: julday
    character (len=*)   ,   intent(in)    :: mminlu
-   character (len=19)  ,   intent(in)    :: date
-   real, dimension(1:nx,1:ny),   intent(in)    :: lanu 
+   integer, dimension(1:nx,1:ny),   intent(in)    :: lanu 
    real, dimension(1:nx,1:ny),   intent(out)   :: rough 
 
    integer                               :: LS, LC, LI, LUCATS, LuseAS, &
-                                           LUMATCH, year, month, day,  &
-                                           julday, Isn, io_error, &
+                                           LUMATCH,   &
+                                            Isn, io_error, &
                                            m1, m2, n1, n2 
    real                                  :: albd, slmo, sfem
    real(kind=4), dimension(50,2)         :: sfz0
@@ -26,14 +27,12 @@ subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough,nx,ny)
    logical                               :: iexist
 
 
-   read(unit=date,fmt='(I4,1x,I2,1X,I2)') year, month, day
-   Julday = IW3JDN(YEAR,MONTH,IDAY)
    Isn = 1
    if (JULDAY < 105 .OR. JULDAY > 288) Isn=2
 
    inquire (file = 'LANDUSE.TBL', exist = iexist)
 
-   if (exist) then
+   if (iexist) then
       open (unit = ltbl, file = 'LANDUSE.TBL', form='formatted', &
                      action = 'read', iostat = io_error)
    else
