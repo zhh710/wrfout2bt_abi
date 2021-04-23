@@ -42,6 +42,7 @@ module read_wrf
     real(P),allocatable,dimension(:,:):: soil_moi_full   !  soil moisture of first layer,SMOIS
     real(P),allocatable,dimension(:,:):: soil_temp_full  !  soil temperature of first layer,TSLB
     real(P),allocatable,dimension(:,:):: sfc_rough_full  !  Surface roughness, in TANDUSE.TBL, units:M
+    real(P),allocatable,dimension(:,:):: fact10_full     !  10 m wind factor, m
     !
     REAL(P),allocatable,dimension(:,:):: idomsfc 
     !!     idomsfc  - dominate surface type
@@ -167,6 +168,8 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE sfc_rough_full(nx,ny) error"
             allocate(idomsfc(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE idomsfc(nx,ny) error"
+            allocate(fact10_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE fact10_full(nx,ny) error"
 
             ! 3d arrays
             !Pressure, Pa
@@ -175,9 +178,12 @@ module read_wrf
             !
             allocate(pml(nx,ny,nz_stagger),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE PML(nx,ny,nz) error"
-            !Potential temperature
+            !Potential temperature,K
             allocate(t(nx,ny,nz),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE t(nx,ny,nz) error"
+            ! temperature ,K
+            allocate(tk(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE tk(nx,ny,nz) error"
             !U wind, m/s
             allocate(u(nx,ny,nz),stat = istatus)
             if(istatus/=0)write(6,*)"ALLOCATE u(nx,ny,nz) error"
@@ -224,6 +230,7 @@ module read_wrf
             deallocate(soil_temp_full,stat=istatus)
             deallocate(sfc_rough_full,stat=istatus)
             deallocate(idomsfc,stat=istatus)
+            deallocate(fact10_full,stat=istatus)
             !
             deallocate(pmid,stat=istatus)
             deallocate(pml,stat=istatus)
@@ -231,6 +238,8 @@ module read_wrf
             deallocate(v,stat=istatus)
             deallocate(oz,stat=istatus)
             deallocate(qv,stat=istatus)
+            deallocate(t,stat=istatus)
+            deallocate(tk,stat=istatus)
         end subroutine destory_wrfinput_array
         !
         !load data
@@ -281,6 +290,8 @@ module read_wrf
             call get_ncd_2d(ncid,1,"LANDMASK",nx,ny,idomsfc,istatus)
             where (pctsno >0.0) idomsfc = 3
             where (sice >0.0) idomsfc = 2
+            ! 10m wind factor
+            call comp_fact10()
             ! 3d array
             ! READ PRESSURE , Pa
             allocate(tmp1_3d(nx,ny,nz),stat=istatus)
@@ -303,6 +314,8 @@ module read_wrf
             call get_ncd_3d(ncid,1,"O3RAD",nx,ny,nz,oz,istatus)
             ! READ QVAPOR
             call get_ncd_3d(ncid,1,"QVAPOR",nx,ny,nz,qv,istatus)
+            !2d arrays , 10m wind factor
+            call comp_fact10()
 
 
         end subroutine load_data
@@ -405,6 +418,26 @@ module read_wrf
             enddo
 
         end subroutine get_full_pressure
+        !
+        !compute 10m wind factor
+        !
+        subroutine comp_fact10()
+            implicit none
+            integer(INT32)::i,j
+            real(P)::f10m
+            do i=1,nx
+                do j=1,ny
+                    call compute_fact10(u(i,j,1),v(i,j,1),&
+                            tk(i,j,1),qv(i,j,1),          &
+                            psfc(i,j),pml(i,j,1),         &
+                            pml(i,j,2),ths(i,j),          &
+                            sfc_rough_full(i,j),          &
+                            idomsfc(i,j),f10m)
+                    fact10_full(i,j) = f10m
+                end do
+            enddo
+        end subroutine comp_fact10
+        !------------------------------------------------
         !
         ! dim_,dim_id
         !
