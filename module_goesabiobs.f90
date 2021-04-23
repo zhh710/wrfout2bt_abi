@@ -33,11 +33,12 @@ Module goesabi_obs
 ! ilate     = 31    ! index of earth relative latitude (degrees)
 ! iassim    = 32    ! 0:not assimilate
 
-    use model_precision,only:P,INT32,DP
+    use model_precision,only:P,INT32,DP,r_kind,i_kind
     use parameters_define,only:abi_file,abiobs_mid_file,iuseabi,nchanl_abi
     use parameters_define,only:regional
     use parameters_define,only:deg2rad
     use gridmod,only:tll2xy
+    use deter_sfc_mod,only:deter_sfc
     use netcdf
     implicit none
     INTEGER(INT32):: isatid    = 1     ! index of satellite id
@@ -120,6 +121,14 @@ Module goesabi_obs
         real(P)::dlon,dlat
         !
         LOGICAL::outside
+        !sfc
+        integer(INT32)::isflg,idomsfc
+        real(P) :: tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10
+        real(P) :: t4dv ! obstime observation time relative to analysis time
+        real(P) :: sfcr !
+        real(r_kind),dimension(0:3):: sfcpct
+        real(r_kind),dimension(0:3):: ts
+
         !!!!!!!!!!!!
         ! OPEN NETCDF FILE
         istatus = nf90_open(TRIM(abi_file), NF90_NOWRITE, ncdfID)
@@ -216,8 +225,8 @@ Module goesabi_obs
             !
             !!!!!!!!!!!!!!!!!!!!!!!!SFC
             ! Locate the observation on the analysis grid.  Get sst and land/sea/ice  mask.  
-            !            call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
-            !    ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
+                        call deter_sfc(dlat,dlon,dlat_earth,dlon_earth,t4dv,isflg,idomsfc,sfcpct, &
+                ts,tsavg,vty,vfr,sty,stp,sm,sn,zz,ff10,sfcr)
 
         ENDDO
 

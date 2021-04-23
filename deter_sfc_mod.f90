@@ -7,8 +7,14 @@ MODULE deter_sfc_mod
   use read_wrf,only:zs_full,sst_full
   use read_wrf,only:soil_moi_full,soil_temp_full
   use read_wrf,only:sno_full
-  use read_wrf,only:ivgtyp,isltyp,vegfrac
+  use read_wrf,only:isli_full
+  use read_wrf,only:sfc_rough_full
+  use read_wrf,only:fact10_full
+  use read_wrf,only:veg_type_full=>ivgtyp
+  use read_wrf,only:soil_type_full=>isltyp
+  use read_wrf,only:veg_frac_full=>vegfrac
   use parameters_define,only:zero,one,regional
+  use model_precision,only:i_kind,r_kind
   implicit none
 
 ! Set default to private
@@ -71,7 +77,7 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
      real(r_kind)               ,intent(  out) :: tsavg,sfcr
      real(r_kind)               ,intent(  out) :: vty,vfr,sty,stp,sm,sn,zz,ff10
 
-     real(r_kind),parameter:: minsnow=one_tenth
+     real(r_kind),parameter:: minsnow=0.1_r_kind
 
      integer(i_kind) istyp00,istyp01,istyp10,istyp11
      integer(i_kind):: ix,iy,ixp,iyp,j

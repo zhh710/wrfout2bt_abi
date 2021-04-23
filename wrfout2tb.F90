@@ -9,7 +9,8 @@ use read_wrf,only:isltyp
 use read_wrf,only:sno_full,si,pctsno
 use read_wrf,only:soil_moi_full,soil_temp_full
 use read_wrf,only:sfc_rough_full
-use read_wrf,only:idomsfc
+use read_wrf,only:isli_full
+use read_wrf,only:fact10_full
 use read_wrf,only:ths
 use read_wrf,only:sice
 use read_wrf,only:zs_full
@@ -48,7 +49,8 @@ print*,"min/max of HGT: ",minval(zs_full),maxval(zs_full)
 print*,"min/max of SIOL MOISTURE: ",minval(soil_moi_full),maxval(soil_moi_full)
 print*,"min/max of SIOL TEMPERATURE: ",minval(soil_temp_full),maxval(soil_temp_full)
 print*,"min/max of SURFACE roughness: ",minval(sfc_rough_full),maxval(sfc_rough_full)
-print*,"min/max of water,land ,sea ice,snow: ",minval(idomsfc),maxval(idomsfc)
+print*,"min/max of 10m wind factor: ",minval(fact10_full),maxval(fact10_full)
+print*,"min/max of water,land ,sea ice,snow: ",minval(isli_full),maxval(isli_full)
 print*,"P top:",p_top
 print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics
