@@ -69,7 +69,7 @@ subroutine compute_fact10(u,v,t,q,ps,prsi1,prsi2,skint,z0rl,islimsk,f10m)
 ! Local Parameters
   real(r_kind),parameter::  charnok=0.014_r_kind
 ! real(r_kind),parameter::  ca=0.4_r_kind
-  real(r_kind),parameter::  alpha=five
+  real(r_kind),parameter::  alpha=5.0_r_kind
   real(r_kind),parameter::  a0=-3.975_r_kind
   real(r_kind),parameter::  a1=12.32_r_kind
   real(r_kind),parameter::  b1=-7.755_r_kind
