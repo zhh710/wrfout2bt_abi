@@ -3,6 +3,7 @@ module read_wrf
     USE netcdf
     use parameters_define,only:wrf_file
     use parameters_define,only:deg2rad
+    use w3nco,only:w3fs21
     implicit none
     !3d arrays allocated in init_wrfinput_array
     real(P),allocatable,dimension(:,:,:)::pmid! pressure at mass levels, Pa
@@ -44,8 +45,8 @@ module read_wrf
     real(P),allocatable,dimension(:,:):: sfc_rough_full  !  Surface roughness, in TANDUSE.TBL, units:M
     real(P),allocatable,dimension(:,:):: fact10_full     !  10 m wind factor, m
     !
-    REAL(P),allocatable,dimension(:,:):: idomsfc 
-    !!     idomsfc  - dominate surface type
+    REAL(P),allocatable,dimension(:,:):: isli_full 
+    !!     isli_full  - dominate surface type
     !                0 sea
     !                1 land
     !                2 sea ice
@@ -77,6 +78,7 @@ module read_wrf
     character(LEN=50)::mminlu
     integer(INT32)::JULDAY !JULDAY
     integer(INT32)::JULYR !JULYR
+    integer(INT32)::iwinbgn
     !
     public:: load_data,destory_wrfinput_array
     private:: dim_,get_dims,init_wrfinput_array
@@ -166,8 +168,8 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE soil_temp_full(nx,ny) error"
             allocate(sfc_rough_full(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE sfc_rough_full(nx,ny) error"
-            allocate(idomsfc(nx,ny),stat=istatus)
-            if(istatus/=0)write(6,*)"ALLOCATE idomsfc(nx,ny) error"
+            allocate(isli_full(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE isli_full(nx,ny) error"
             allocate(fact10_full(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE fact10_full(nx,ny) error"
 
@@ -229,7 +231,7 @@ module read_wrf
             deallocate(soil_moi_full,stat=istatus)
             deallocate(soil_temp_full,stat=istatus)
             deallocate(sfc_rough_full,stat=istatus)
-            deallocate(idomsfc,stat=istatus)
+            deallocate(isli_full,stat=istatus)
             deallocate(fact10_full,stat=istatus)
             !
             deallocate(pmid,stat=istatus)
@@ -287,9 +289,9 @@ module read_wrf
             print*,mminlu,julday
             call da_roughness_from_lanu(996, mminlu, julday, ivgtyp, sfc_rough_full,nx,ny)
             ! water,land,sea ice,snow
-            call get_ncd_2d(ncid,1,"LANDMASK",nx,ny,idomsfc,istatus)
-            where (pctsno >0.0) idomsfc = 3
-            where (sice >0.0) idomsfc = 2
+            call get_ncd_2d(ncid,1,"LANDMASK",nx,ny,isli_full,istatus)
+            where (pctsno >0.0) isli_full = 3
+            where (sice >0.0) isli_full = 2
             ! 10m wind factor
             call comp_fact10()
             ! 3d array
@@ -312,6 +314,7 @@ module read_wrf
             tk = t*(pmid/p00)**rd_over_cp_mass
             ! READ O3
             call get_ncd_3d(ncid,1,"O3RAD",nx,ny,nz,oz,istatus)
+            if (istatus /= NF90_NOERR)oz = -1.
             ! READ QVAPOR
             call get_ncd_3d(ncid,1,"QVAPOR",nx,ny,nz,qv,istatus)
             !2d arrays , 10m wind factor
@@ -324,6 +327,9 @@ module read_wrf
         !
         subroutine get_base_value()
             implicit none
+            character(len=19)::Times
+            integer(INT32)::idates(5)
+            integer(INT32)::varid
             integer(INT32)::istatus
             p00 = 100000. ! Pa
             t_base = 300. ! K
@@ -342,6 +348,11 @@ module read_wrf
             istatus = nf90_get_att(ncid,nf90_global,"MMINLU",mminlu)
             istatus = nf90_get_att(ncid,nf90_global,"JULDAY",JULDAY)
             istatus = nf90_get_att(ncid,nf90_global,"JULYR",JULYR)
+            !analysis time in minutes from 1/1/1978
+            istatus = nf90_inq_varid(ncid,"Times",varid)
+            istatus = nf90_get_var(ncid,varid,Times)
+            read(Times,"(I4,1x,I2,1x,I2,1x,I2,1x,I2)")idates
+            call w3fs21(idates,iwinbgn)
 
 
         end subroutine get_base_value
@@ -432,7 +443,7 @@ module read_wrf
                             psfc(i,j),pml(i,j,1),         &
                             pml(i,j,2),ths(i,j),          &
                             sfc_rough_full(i,j),          &
-                            idomsfc(i,j),f10m)
+                            isli_full(i,j),f10m)
                     fact10_full(i,j) = f10m
                 end do
             enddo

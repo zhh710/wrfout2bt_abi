@@ -1,9 +1,8 @@
 wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o module_goesabiobs.o
 module_precision.mod : module_precision.f90
-read_wrf.o : read_wrf.f90  module_precision.o load_parameters.o compute_fact10.o
+read_wrf.o : read_wrf.f90  module_precision.o load_parameters.o compute_fact10.o module_w3nco.o
 load_parameters.o : load_parameters.f90 module_precision.o
-#module_goesabiobs.o : module_goesabiobs.f90  module_precision.o load_parameters.o gridmod.o deter_sfc_mod.o
-module_goesabiobs.o : module_goesabiobs.f90  module_precision.o load_parameters.o gridmod.o module_w3nco.o deter_sfc_mod.o
+module_goesabiobs.o : module_goesabiobs.f90  module_precision.o load_parameters.o gridmod.o module_w3nco.o deter_sfc_mod.o read_wrf.o
 gridmod.o : gridmod.f90 module_precision.o load_parameters.o read_wrf.o
 da_roughness_from_lanu.o : da_roughness_from_lanu.f90
 module_w3nco. o: module_w3nco.f90
