@@ -31,9 +31,7 @@ subroutine compute_fact10(u,v,t,q,ps,prsi1,prsi2,skint,z0rl,islimsk,f10m)
 !
 !$$$ end documentation block
 
-  use kinds, only: r_kind,i_kind
-  use constants, only: grav,zero,quarter,half,one,two,four,five,&
-       fv,rd,rd_over_cp,r1000
+  use model_precision, only: r_kind,i_kind
   implicit none
 
 ! Passed Variables
@@ -41,6 +39,21 @@ subroutine compute_fact10(u,v,t,q,ps,prsi1,prsi2,skint,z0rl,islimsk,f10m)
   integer(i_kind),intent(in   ) :: islimsk
   real(r_kind)   ,intent(  out) :: f10m
   real(r_kind)   ,intent(in   ) :: prsi1,prsi2
+!
+  real(r_kind)::grav = 9.81
+  real(r_kind)::rd=287.04
+  real(r_kind)::rv = 4.6150e+2
+  real(r_kind)::cp = 1.0046e+3
+  real(r_kind)::rd_over_cp
+  real(r_kind)::zero=0.
+  real(r_kind)::quarter=0.25
+  real(r_kind)::half=0.5
+  real(r_kind)::one=1.
+  real(r_kind)::two=2.
+  real(r_kind)::four=4.
+  real(r_kind)::five=5.
+  real(r_kind)::fv
+  real(r_kind)::r1000=1000.
 
 ! Local Variables
   real(r_kind):: prsl,prkl
@@ -81,6 +94,8 @@ subroutine compute_fact10(u,v,t,q,ps,prsi1,prsi2,skint,z0rl,islimsk,f10m)
 !  WIND IS WIND SPEED, THETA1 IS ADIABATIC SURFACE TEMP FROM LEVEL 1
 !  SURFACE ROUGHNESS LENGTH IS CONVERTED TO M FROM CM
 
+   fv = rv/rd-one
+   rd_over_cp = rd/cp
 
    rkap = rd_over_cp
    RKAPI  = one / RKAP
