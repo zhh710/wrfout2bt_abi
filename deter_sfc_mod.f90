@@ -1,7 +1,14 @@
 ! Adapted from GSI deter_sfc_mof.f90 4/21/2021
+! : NO time Interpolation Now
 MODULE deter_sfc_mod
 !
 ! abstract: subroutine used to determine land surface type
+  use read_wrf,only:nx,ny
+  use read_wrf,only:zs_full,sst_full
+  use read_wrf,only:soil_moi_full,soil_temp_full
+  use read_wrf,only:sno_full
+  use read_wrf,only:ivgtyp,isltyp,vegfrac
+  use parameters_define,only:zero,one,regional
   implicit none
 
 ! Set default to private
@@ -67,12 +74,17 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
      real(r_kind),parameter:: minsnow=one_tenth
 
      integer(i_kind) istyp00,istyp01,istyp10,istyp11
-     integer(i_kind):: itsfc,itsfcp
      integer(i_kind):: ix,iy,ixp,iyp,j
-     real(r_kind):: dx,dy,dx1,dy1,w00,w10,w01,w11,dtsfc,dtsfcp,wgtmin
+     real(r_kind):: dx,dy,dx1,dy1,w00,w10,w01,w11,wgtmin
      real(r_kind):: sno00,sno01,sno10,sno11,dlat,dlon
      real(r_kind):: sst00,sst01,sst10,sst11
      real(r_kind),dimension(0:3)::wgtavg
+     !
+     integer(i_kind)::nlon,nlat
+     integer(i_kind)::nlon_sfc,nlat_sfc
+     !
+     nlon=nx;nlat=ny
+     nlon_sfc=nx;nlat_sfc=ny
 
 !  First do surface field since it is on model grid
      iy=int(alon); ix=int(alat)
@@ -91,14 +103,11 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
             zs_full(ix,iyp)*w01 + zs_full(ixp,iyp)*w11
 
      if(regional)then
-!       call tll2xy(dlon_earth,dlat_earth,dlon,dlat,outside)
         dlat=alat
         dlon=alon
      else
-        dlat=dlat_earth
-        dlon=dlon_earth
-        call grdcrd1(dlat,rlats_sfc,nlat_sfc,1)
-        call grdcrd1(dlon,rlons_sfc,nlon_sfc,1)
+         print*,"Only process regional domain"
+         return
      end if
      iy=int(dlon); ix=int(dlat)
      dy  =dlon-iy; dx  =dlat-ix
@@ -109,26 +118,6 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
      if(iy==0) iy=nlon_sfc
      if(iyp==nlon_sfc+1) iyp=1
 
-!    Get time interpolation factors for surface files
-     if(obstime > hrdifsfc(1) .and. obstime <= hrdifsfc(nfldsfc))then
-        do j=1,nfldsfc-1
-           if(obstime > hrdifsfc(j) .and. obstime <= hrdifsfc(j+1))then
-              itsfc=j
-              itsfcp=j+1
-              dtsfc=(hrdifsfc(j+1)-obstime)/(hrdifsfc(j+1)-hrdifsfc(j))
-           end if
-        end do
-     else if(obstime <=hrdifsfc(1))then
-        itsfc=1
-        itsfcp=1
-        dtsfc=one
-     else
-        itsfc=nfldsfc
-        itsfcp=nfldsfc
-        dtsfc=one
-     end if
-     dtsfcp=one-dtsfc
-
 !    Set surface type flag.  Begin by assuming obs over ice-free water
 
      istyp00 = isli_full(ix ,iy )
@@ -136,15 +125,17 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
      istyp01 = isli_full(ix ,iyp)
      istyp11 = isli_full(ixp,iyp)
 
-     sno00= sno_full(ix ,iy ,itsfc)*dtsfc+sno_full(ix ,iy ,itsfcp)*dtsfcp
-     sno01= sno_full(ix ,iyp,itsfc)*dtsfc+sno_full(ix ,iyp,itsfcp)*dtsfcp
-     sno10= sno_full(ixp,iy ,itsfc)*dtsfc+sno_full(ixp,iy ,itsfcp)*dtsfcp
-     sno11= sno_full(ixp,iyp,itsfc)*dtsfc+sno_full(ixp,iyp,itsfcp)*dtsfcp
-
-     sst00= sst_full(ix ,iy ,itsfc)*dtsfc+sst_full(ix ,iy ,itsfcp)*dtsfcp
-     sst01= sst_full(ix ,iyp,itsfc)*dtsfc+sst_full(ix ,iyp,itsfcp)*dtsfcp
-     sst10= sst_full(ixp,iy ,itsfc)*dtsfc+sst_full(ixp,iy ,itsfcp)*dtsfcp
-     sst11= sst_full(ixp,iyp,itsfc)*dtsfc+sst_full(ixp,iyp,itsfcp)*dtsfcp
+     ! No time Interpolation now
+     ! snow water
+     sno00= sno_full(ix ,iy )
+     sno01= sno_full(ix ,iyp)
+     sno10= sno_full(ixp,iy )
+     sno11= sno_full(ixp,iyp)
+     !sst
+     sst00= sst_full(ix ,iy )
+     sst01= sst_full(ix ,iyp)
+     sst10= sst_full(ixp,iy )
+     sst11= sst_full(ixp,iyp)
 !    Interpolate sst to obs location
 
      tsavg=sst00*w00+sst10*w10+sst01*w01+sst11*w11
@@ -191,12 +182,12 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
         sty  = soil_type_full(ix ,iy)
         wgtavg(1) = wgtavg(1) + w00
         ts(1)=ts(1)+w00*sst00
-        vfr  =vfr  +w00*(veg_frac_full(ix ,iy ,itsfc ) *dtsfc+   &
-                         veg_frac_full(ix ,iy ,itsfcp) *dtsfcp)
-        stp  =stp  +w00*(soil_temp_full(ix ,iy ,itsfc )*dtsfc+   &
-                         soil_temp_full(ix ,iy ,itsfcp)*dtsfcp)
-        sm   =sm   +w00*(soil_moi_full(ix ,iy ,itsfc ) *dtsfc+   &
-                         soil_moi_full(ix ,iy ,itsfcp) *dtsfcp)
+        vfr  =vfr  +w00*(veg_frac_full(ix ,iy  )    &
+                         )
+        stp  =stp  +w00*(soil_temp_full(ix ,iy  )   &
+                         )
+        sm   =sm   +w00*(soil_moi_full(ix ,iy  )   &
+                         )
      else if(istyp00 == 2)then
         wgtavg(2) = wgtavg(2) + w00
         ts(2)=ts(2)+w00*sst00
@@ -215,12 +206,12 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
         end if
         wgtavg(1) = wgtavg(1) + w01
         ts(1)=ts(1)+w01*sst01
-        vfr  =vfr  +w01*(veg_frac_full(ix ,iyp,itsfc ) *dtsfc+   &
-                         veg_frac_full(ix ,iyp,itsfcp) *dtsfcp)
-        stp  =stp  +w01*(soil_temp_full(ix ,iyp,itsfc )*dtsfc+   &
-                         soil_temp_full(ix ,iyp,itsfcp)*dtsfcp)
-        sm   =sm   +w01*(soil_moi_full(ix ,iyp,itsfc ) *dtsfc+   &
-                         soil_moi_full(ix ,iyp,itsfcp) *dtsfcp)
+        vfr  =vfr  +w01*(veg_frac_full(ix ,iyp )    &
+                         )
+        stp  =stp  +w01*(soil_temp_full(ix ,iyp )   &
+                         )
+        sm   =sm   +w01*(soil_moi_full(ix ,iyp )    &
+                         )
      else if(istyp01 == 2)then
         wgtavg(2) = wgtavg(2) + w01
         ts(2)=ts(2)+w01*sst01
@@ -243,12 +234,12 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
         end if
         wgtavg(1) = wgtavg(1) + w10
         ts(1)=ts(1)+w10*sst10
-        vfr  =vfr  +w10*(veg_frac_full(ixp,iy ,itsfc ) *dtsfc+   &
-                         veg_frac_full(ixp,iy ,itsfcp) *dtsfcp)
-        stp  =stp  +w10*(soil_temp_full(ixp,iy ,itsfc )*dtsfc+   &
-                         soil_temp_full(ixp,iy ,itsfcp)*dtsfcp)
-        sm   =sm   +w10*(soil_moi_full(ixp,iy ,itsfc ) *dtsfc+   &
-                         soil_moi_full(ixp,iy ,itsfcp) *dtsfcp)
+        vfr  =vfr  +w10*(veg_frac_full(ixp,iy  )    &
+                         )
+        stp  =stp  +w10*(soil_temp_full(ixp,iy  )  &
+                         )
+        sm   =sm   +w10*(soil_moi_full(ixp,iy  )   &
+                         )
      else if(istyp10 == 2)then
         wgtavg(2) = wgtavg(2) + w10
         ts(2)=ts(2)+w10*sst10
@@ -271,12 +262,12 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
         endif
         wgtavg(1) = wgtavg(1) + w11
         ts(1)=ts(1)+w11*sst11
-        vfr  =vfr  +w11*(veg_frac_full(ixp,iyp,itsfc ) *dtsfc+   &
-                         veg_frac_full(ixp,iyp,itsfcp) *dtsfcp)
-        stp  =stp  +w11*(soil_temp_full(ixp,iyp,itsfc )*dtsfc+   &
-                         soil_temp_full(ixp,iyp,itsfcp)*dtsfcp)
-        sm   =sm   +w11*(soil_moi_full(ixp,iyp,itsfc ) *dtsfc+   &
-                         soil_moi_full(ixp,iyp,itsfcp) *dtsfcp)
+        vfr  =vfr  +w11*(veg_frac_full(ixp,iyp )    &
+                         )
+        stp  =stp  +w11*(soil_temp_full(ixp,iyp )   &
+                         )
+        sm   =sm   +w11*(soil_moi_full(ixp,iyp )    &
+                         )
      else if(istyp11 == 2)then
         wgtavg(2) = wgtavg(2) + w11
         ts(2)=ts(2)+w11*sst11
@@ -320,25 +311,16 @@ subroutine deter_sfc(alat,alon,dlat_earth,dlon_earth,obstime,isflg, &
 !    ts(0)=max(ts(0),270._r_kind)
 !    ts(2)=min(ts(2),280._r_kind)
 !    ts(3)=min(ts(3),280._r_kind)
-!    Space-time interpolation of fields from surface wind speed
 
-     ff10=(fact10_full(ix ,iy ,itsfc )*w00+ &
-           fact10_full(ixp,iy ,itsfc )*w10+ &
-           fact10_full(ix ,iyp,itsfc )*w01+ &
-           fact10_full(ixp,iyp,itsfc )*w11)*dtsfc + &
-          (fact10_full(ix ,iy ,itsfcp)*w00+ &
-           fact10_full(ixp,iy ,itsfcp)*w10+ &
-           fact10_full(ix ,iyp,itsfcp)*w01+ &
-           fact10_full(ixp,iyp,itsfcp)*w11)*dtsfcp
+     ff10=(fact10_full(ix ,iy  )*w00+ &
+           fact10_full(ixp,iy  )*w10+ &
+           fact10_full(ix ,iyp )*w01+ &
+           fact10_full(ixp,iyp )*w11)
 
-     sfcr=(sfc_rough_full(ix ,iy ,itsfc )*w00+ &
-           sfc_rough_full(ixp,iy ,itsfc )*w10+ &
-           sfc_rough_full(ix ,iyp,itsfc )*w01+ &
-           sfc_rough_full(ixp,iyp,itsfc )*w11)*dtsfc + &
-          (sfc_rough_full(ix ,iy ,itsfcp)*w00+ &
-           sfc_rough_full(ixp,iy ,itsfcp)*w10+ &
-           sfc_rough_full(ix ,iyp,itsfcp)*w01+ &
-           sfc_rough_full(ixp,iyp,itsfcp)*w11)*dtsfcp
+     sfcr=(sfc_rough_full(ix ,iy  )*w00+ &
+           sfc_rough_full(ixp,iy  )*w10+ &
+           sfc_rough_full(ix ,iyp )*w01+ &
+           sfc_rough_full(ixp,iyp )*w11)
 
      return
 end subroutine deter_sfc
