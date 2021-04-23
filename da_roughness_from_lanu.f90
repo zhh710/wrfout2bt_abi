@@ -1,19 +1,20 @@
 ! Adapted from WRF/var/da/da_physics/da_roughness_from_lanu.inc 4/22/2021
 ! : Get surface roughness
 ! : it can be got in wrfoutput file if edit Registry/Registry.EM_COMMON
-subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough)
+subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough,nx,ny)
 
    !-----------------------------------------------------------------------
    ! Purpose: TBD
    !-----------------------------------------------------------------------
+   use w3nco,only:IW3JDN
 
    implicit none
 
    integer             ,   intent(in)    :: ltbl
    character (len=*)   ,   intent(in)    :: mminlu
    character (len=19)  ,   intent(in)    :: date
-   real, dimension(ims:ime,jms:jme),   intent(in)    :: lanu 
-   real, dimension(ims:ime,jms:jme),   intent(out)   :: rough 
+   real, dimension(1:nx,1:ny),   intent(in)    :: lanu 
+   real, dimension(1:nx,1:ny),   intent(out)   :: rough 
 
    integer                               :: LS, LC, LI, LUCATS, LuseAS, &
                                            LUMATCH, year, month, day,  &
@@ -26,7 +27,7 @@ subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough)
 
 
    read(unit=date,fmt='(I4,1x,I2,1X,I2)') year, month, day
-   call da_julian_day(year,month,day,Julday, 1)
+   Julday = IW3JDN(YEAR,MONTH,IDAY)
    Isn = 1
    if (JULDAY < 105 .OR. JULDAY > 288) Isn=2
 
@@ -59,8 +60,9 @@ subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough)
                if (albd == 0.0 .or. sfem == 0.0 .or. slmo == 0.0) then
                end if
                if (LC /= LI) then
-                 call da_error(__FILE__,__LINE__, &
-                   (/"Missing landuse: lc"/))
+                   print*,"Missing landuse: lc"
+                   rough = 0.
+                   return
                end if
             else 
                read (unit=ltbl,fmt=*) 
@@ -72,8 +74,9 @@ subroutine da_roughness_from_lanu(ltbl, mminlu, date, lanu, rough)
    close (unit=ltbl)
 
    if (lumatch == 0)then
-    call da_error(__FILE__,__LINE__,&
-      (/"landuse in input file does not match lutable"/))
+      print*,"landuse in input file does not match lutable"
+      rough=0.
+      return
    end if   
 
    m1 = 1
