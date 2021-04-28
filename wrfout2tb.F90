@@ -19,8 +19,7 @@ use read_wrf,only:p_top
 use read_wrf,only:grid_ratio,imp_physics
 !
 use  goesabi_obs,only:read_goesabi_netcdf
-use  goesabi_obs,only:data_abi,nabiobs
-use  goesabi_obs,only:destory_abiobs_array
+use  goesabi_obs,only:nabiobs
 use  goesabi_obs,only:read_abiobsarray_from_file
 !
 implicit none
@@ -63,11 +62,12 @@ print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics
 !
 call read_goesabi_netcdf()
-print*,"min/max of tb channel 7 ",minval(data_abi(36,1:nabiobs)),maxval(data_abi(36,1:nabiobs))
-call destory_abiobs_array()
 call read_abiobsarray_from_file(temp1_2d)
 print*,"min/max of tb channel 7 ",minval(temp1_2d(36,:)),maxval(temp1_2d(36,:))
-call destory_abiobs_array()
+print*,"min/max of tb channel 8 ",minval(temp1_2d(37,:)),maxval(temp1_2d(37,:))
+print*,"min/max of tb channel 10 ",minval(temp1_2d(39,:)),maxval(temp1_2d(39,:))
+print*,"min/max of tb obs  lon ",minval(temp1_2d(30,:)),maxval(temp1_2d(30,:))
+print*,"min/max of tb obs  lat ",minval(temp1_2d(31,:)),maxval(temp1_2d(31,:))
 call destory_wrfinput_array()
 
 end program
