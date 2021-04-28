@@ -57,10 +57,12 @@ contains
 !
 !$$$
 !
-       IW3JDN  =    IDAY - 32075
-     &            + 1461 * (IYEAR + 4800 + (MONTH - 14) / 12) / 4
-     &            + 367 * (MONTH - 2 - (MONTH -14) / 12 * 12) / 12
-     &            - 3 * ((IYEAR + 4900 + (MONTH - 14) / 12) / 100) / 4
+       INTEGER::IW3JDN
+       INTEGER::IYEAR,MONTH,IDAY
+       IW3JDN  =    IDAY - 32075                                       &
+                 + 1461 * (IYEAR + 4800 + (MONTH - 14) / 12) / 4       &
+                 + 367 * (MONTH - 2 - (MONTH -14) / 12 * 12) / 12      &
+                 - 3 * ((IYEAR + 4900 + (MONTH - 14) / 12) / 100) / 4
        RETURN
        END FUNCTION IW3JDN
 !-----------------------------------
@@ -105,6 +107,7 @@ contains
       INTEGER  IDATE(5)
       INTEGER  NMIN
       INTEGER  JDN78
+      INTEGER::IYEAR,IJDN,NDAYS
 !
       DATA  JDN78 / 2443510 /
 !
@@ -214,6 +217,8 @@ contains
 !
 !$$$
 !
+      INTEGER::JLDAYN,IYEAR,MONTH,IDAY,IDAYWK,IDAYYR
+      INTEGER::L,N,I,J
        L      = JLDAYN + 68569
        N      = 4 * L / 146097
        L      = L - (146097 * N + 3) / 4
@@ -225,8 +230,8 @@ contains
        MONTH  = J + 2 - 12 * L
        IYEAR  = 100 * (N - 49) + I + L
        IDAYWK = MOD((JLDAYN + 1),7) + 1
-       IDAYYR = JLDAYN -
-     &  (-31739 +1461 * (IYEAR+4799) / 4 - 3 * ((IYEAR+4899)/100)/4)
+       IDAYYR = JLDAYN -                                          &
+       (-31739 +1461 * (IYEAR+4799) / 4 - 3 * ((IYEAR+4899)/100)/4)
        RETURN
        END SUBROUTINE W3FS26
 !----------------------------
