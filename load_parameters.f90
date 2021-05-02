@@ -31,7 +31,9 @@ module parameters_define
     character(LEN=40)::abiobs_mid_file
     INTEGER(INT32)::nchanl_abi
     INTEGER(INT32),ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
-
+    REAL(P),ALLOCATABLE,DIMENSION(:,:):: cld_abi_err !(nchannel,npass)
+    REAL(P),ALLOCATABLE,DIMENSION(:,:):: clr_abi_err !(nchannel,npass)
+    NAMELIST /adas_abi/ abi_file,abiobs_mid_file,nchanl_abi,iuseabi
 
     contains
     subroutine read_nml(parameter_file)
@@ -44,6 +46,12 @@ module parameters_define
         abiobs_mid_file="abiobs.dat"
         nchanl_abi=10
         allocate(iuseabi(nchanl_abi,1),stat=istatus)
+        iuseabi(:,:) = .False.
+        iuseabi(4,1) = .True.
+        allocate(cld_abi_err(nchanl_abi,1),stat=istatus)
+        cld_abi_err(:,:)=3.0
+        allocate(clr_abi_err(nchanl_abi,1),stat=istatus)
+        clr_abi_err(:,:)=1.75
 
     end subroutine
 
