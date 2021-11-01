@@ -1,8 +1,8 @@
 
 # Tool-specific substitution variables
 FC      = gfortran
-FCFLAGS = -fconvert=big-endian  -O3 -fimplicit-none -ffree-form -fno-second-underscore -frecord-marker=4 -funroll-loops -fopenmp -Wall -Wconversion -mieee-fp -fbounds-check -std=f2008  -c
-LDFLAGS = -fconvert=big-endian  -O3 -fimplicit-none -ffree-form -fno-second-underscore -frecord-marker=4 -funroll-loops -fopenmp -Wall -Wconversion -mieee-fp -fbounds-check -std=f2008 
+FCFLAGS = -mmacosx-version-min=12.0 -fconvert=big-endian  -O3 -fimplicit-none -ffree-form -fno-second-underscore -frecord-marker=4 -funroll-loops -fopenmp -Wall -Wconversion -mieee-fp -fbounds-check -std=f2008  -c
+LDFLAGS = -mmacosx-version-min=12.0 -fconvert=big-endian  -O3 -fimplicit-none -ffree-form -fno-second-underscore -frecord-marker=4 -funroll-loops -fopenmp -Wall -Wconversion -mieee-fp -fbounds-check -std=f2008 
 LIBS = ${LIBS_CRTM} ${LIBS_NETCDF}
 MOD_LIBS = ${MOD_NETCDF} ${MOD_CRTM}
 EXE_FILE = wrfout2tb
