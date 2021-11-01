@@ -30,7 +30,7 @@ module parameters_define
     character(LEN=40)::abi_file
     character(LEN=40)::abiobs_mid_file
     INTEGER(INT32)::nchanl_abi
-    INTEGER(INT32),ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
+    logical,ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: cld_abi_err !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: clr_abi_err !(nchannel,npass)
     NAMELIST /adas_abi/ abi_file,abiobs_mid_file,nchanl_abi,iuseabi
