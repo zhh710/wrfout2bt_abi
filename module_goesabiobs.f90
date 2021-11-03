@@ -77,6 +77,8 @@ Module goesabi_obs
     INTEGER(INT32):: iassim    = 32    ! 0:not assimilate
     !
     integer(INT32)::nabiobs
+    integer(INT32)::nchanl
+    integer(INT32)::nreal
     contains
     !
     subroutine read_goesabi_netcdf()
@@ -117,7 +119,7 @@ Module goesabi_obs
         CHARACTER(LEN=10)::Satellite
         INTEGER(INT32)   :: kidsat
         !
-        INTEGER(INT32)::nreal,nele
+        INTEGER(INT32)::nele
         INTEGER(INT32)::ii,itx,cc,i,n,k ! loop index
         INTEGER(INT32)::ndata !number of profiles retained for further processing
         !
@@ -193,6 +195,7 @@ Module goesabi_obs
         !! Allocate arrays to hold all data for given satellite 
         nreal = maxinfo
         nele = nreal + nchanl_abi
+        nchanl=nchanl_abi
         allocate(data_abi(nele,nn),stat=istatus)
         !
         itx=1
