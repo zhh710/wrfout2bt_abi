@@ -31,13 +31,14 @@ module module_abi
             integer(i_kind) :: nsig
             integer(i_kind) :: msig
             !
+            !
             msig=50
             nsig=msig
             init_pass = .TRUE.
             mype=0
             mype_diaghdr=0
 
-            print*,myname_
+            print*,myname_,"* INIT CRTM *"
             call init_crtm(init_pass,mype_diaghdr,mype,               &
 	& nchanl,isis,obstype,subset_start,subset_end,                    &
 	& msig,nsig,                                                      &
@@ -48,6 +49,14 @@ module module_abi
 	& n_ghg,ghg_names,                                                &
 	& crtm_coeffs_path,                                               &
 	& regional0,nvege_type0)
+            
+             print*,myname_,'*channelinfo: WMO_Satellite_ID :',channelinfo(1)%WMO_Satellite_ID
+             print*,myname_,'*channelinfo: WMO_Sensor_ID    :',channelinfo(1)%WMO_Sensor_ID
+             print*,myname_,'*channelinfo: n_Channels       :',channelinfo(1)%n_Channels
+             !
+             print*,myname_,'*channelinfo: Process_Channel  :',channelinfo(1)%Process_Channel
+             print*,myname_,'*channelinfo: Sensor_Channel   :',channelinfo(1)%Sensor_Channel
+             print*,myname_,'*channelinfo: Channel_Index    :',channelinfo(1)%Channel_Index
 
 
 
