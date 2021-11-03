@@ -397,7 +397,7 @@ subroutine init_crtm(init_pass,mype_diaghdr,mype,                     &
 
 ! Channel Subsets
  sensorindex = 0
-if (channelinfo(1)%sensor_id == "abi") then
+if (channelinfo(1)%sensor_id == "abi_g16") then
     sensorindex =  sensorindex + 1
     error_status = crtm_channelinfo_subset(channelinfo(1), &
            channel_subset = (/(ii,ii=subset_start,subset_end)/))
@@ -515,7 +515,8 @@ endif
          case('n2o'); atmosphere(1)%absorber_id(j) = N2O_ID
          case('co') ; atmosphere(1)%absorber_id(j) = CO_ID
          case default
-           call die(myname_,':  invalid absorber  TERMINATE PROGRAM'//trim(ghg_names(ig)),71) 
+           write(0,*)myname_,':  invalid absorber  TERMINATE PROGRAM'//trim(ghg_names(ig)),71
+           call stop2(71)
        end select
        atmosphere(1)%absorber_units(j) = VOLUME_MIXING_RATIO_UNITS
        if (trim(ghg_names(ig))=='co2') ico2=j
