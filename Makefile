@@ -5,7 +5,7 @@ FCFLAGS = -mmacosx-version-min=12.0 -fconvert=big-endian  -O3 -fimplicit-none -f
 LDFLAGS = -mmacosx-version-min=12.0 -fconvert=big-endian  -O3 -fimplicit-none -ffree-form -fno-second-underscore -frecord-marker=4 -funroll-loops -fopenmp -Wall -Wconversion -mieee-fp -fbounds-check -std=f2008 
 LIBS = ${LIBS_CRTM} ${LIBS_NETCDF}
 MOD_LIBS = ${MOD_NETCDF} ${MOD_CRTM}
-EXE_FILE = wrfout2tb
+EXE_FILE = wrf2abi
 all:$(EXE_FILE)
 include make.filelist
 clean:
