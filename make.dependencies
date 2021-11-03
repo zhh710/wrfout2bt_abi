@@ -1,4 +1,4 @@
-wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o module_goesabiobs.o
+wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o module_goesabiobs.o module_abi.o
 module_precision.mod : module_precision.f90
 read_wrf.o : read_wrf.f90  module_precision.o load_parameters.o compute_fact10.o module_w3nco.o
 load_parameters.o : load_parameters.f90 module_precision.o
@@ -8,3 +8,5 @@ da_roughness_from_lanu.o : da_roughness_from_lanu.f90
 module_w3nco. o: module_w3nco.f90
 compute_fact10.o : compute_fact10.f90 
 deter_sfc_mod.o : deter_sfc_mod.f90 read_wrf.o load_parameters.o
+module_abi.o : module_abi.f90 load_parameters.o module_precision.o crtm_interface.o
+crtm_interface.o : crtm_interface.f90 module_precision.o
