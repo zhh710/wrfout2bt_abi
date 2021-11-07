@@ -6,10 +6,11 @@ module module_abi
     use crtm_interface,only:channelinfo
     use parameters_define,only:lcloud_fwd,lallsky,cld_sea_only
     use parameters_define,only:n_actual_clouds,n_clouds_fwd,n_clouds_jac
-    use parameters_define,only:cloud_names,cloud_names_fwd
+    use parameters_define,only:cloud_names,cloud_names_fwd,cloud_names_jac
     use parameters_define,only:laerosol_fwd,laerosol,n_actual_aerosols
     use parameters_define,only:n_aerosols_fwd,n_aerosols_jac
     use parameters_define,only:aerosol_names,aerosol_names_fwd
+    use parameters_define,only:aerosol_names_jac
     use parameters_define,only:n_ghg,ghg_names
     use parameters_define,only:obstype
     use parameters_define,only:isis,nchanl,subset_start,subset_end
@@ -29,26 +30,27 @@ module module_abi
             logical  :: init_pass
             integer(i_kind) :: mype_diaghdr,mype
             integer(i_kind) :: nsig
-            integer(i_kind) :: msig
+            logical::cold_start 
             !
             !
-            msig=50
-            nsig=msig
+            nsig=50
             init_pass = .TRUE.
             mype=0
             mype_diaghdr=0
+            cold_start = .TRUE.
 
             print*,myname_,"* INIT CRTM *"
             call init_crtm(init_pass,mype_diaghdr,mype,               &
 	& nchanl,isis,obstype,subset_start,subset_end,                    &
-	& msig,nsig,                                                      &
+	& nsig,                                                           &
 	& lcloud_fwd,lallsky,cld_sea_only,n_actual_clouds,n_clouds_fwd,   &
-	& n_clouds_jac,cloud_names,cloud_names_fwd,                       &
+	& n_clouds_jac,cloud_names,cloud_names_fwd,cloud_names_jac,       &
 	& laerosol_fwd,laerosol,n_actual_aerosols,n_aerosols_fwd,         &
-	& n_aerosols_jac,aerosol_names,aerosol_names_fwd,                 &
+    & n_aerosols_jac,aerosol_names,aerosol_names_fwd,                 &
+	& aerosol_names_jac,                                              &
 	& n_ghg,ghg_names,                                                &
 	& crtm_coeffs_path,                                               &
-	& regional0,nvege_type0)
+	& regional0,nvege_type0,cold_start )
             
              print*,myname_,'*channelinfo: WMO_Satellite_ID :',channelinfo(1)%WMO_Satellite_ID
              print*,myname_,'*channelinfo: WMO_Sensor_ID    :',channelinfo(1)%WMO_Sensor_ID
