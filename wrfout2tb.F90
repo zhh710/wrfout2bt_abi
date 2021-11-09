@@ -19,14 +19,15 @@ use read_wrf,only:p_top
 use read_wrf,only:grid_ratio,imp_physics
 !
 use  goesabi_obs,only:read_goesabi_netcdf
-use  goesabi_obs,only:nabiobs
+use  goesabi_obs,only:nabiobs,data_obsabi
 use  goesabi_obs,only:read_abiobsarray_from_file
 !
+use module_abi,only:setuprad
+!
 implicit none
-real,allocatable,dimension(:,:)::temp1_2d
 
 call print_precision()
-call read_nml("input.namelist")
+call read_nml()
 call load_data()
 print*,"min/max of XLAT: ",minval(lat),maxval(lat)
 print*,"min/max of XLONG: ",minval(lon),maxval(lon)
@@ -62,12 +63,17 @@ print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics
 !
 call read_goesabi_netcdf()
-call read_abiobsarray_from_file(temp1_2d)
-print*,"min/max of tb channel 7 ",minval(temp1_2d(36,:)),maxval(temp1_2d(36,:))
-print*,"min/max of tb channel 8 ",minval(temp1_2d(37,:)),maxval(temp1_2d(37,:))
-print*,"min/max of tb channel 10 ",minval(temp1_2d(39,:)),maxval(temp1_2d(39,:))
-print*,"min/max of tb obs  lon ",minval(temp1_2d(30,:)),maxval(temp1_2d(30,:))
-print*,"min/max of tb obs  lat ",minval(temp1_2d(31,:)),maxval(temp1_2d(31,:))
+call read_abiobsarray_from_file()
+print*,"min/max of tb channel 7 ",minval(data_obsabi(36,:)),maxval(data_obsabi(36,:))
+print*,"min/max of tb channel 8 ",minval(data_obsabi(37,:)),maxval(data_obsabi(37,:))
+print*,"min/max of tb channel 10 ",minval(data_obsabi(39,:)),maxval(data_obsabi(39,:))
+print*,"min/max of tb obs  lon ",minval(data_obsabi(30,:)),maxval(data_obsabi(30,:))
+print*,"min/max of tb obs  lat ",minval(data_obsabi(31,:)),maxval(data_obsabi(31,:))
+
+!
+call setuprad()
+!
+print*,"destory_wrfinput_array()"
 call destory_wrfinput_array()
 
 end program

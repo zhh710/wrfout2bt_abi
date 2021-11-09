@@ -79,6 +79,7 @@ Module goesabi_obs
     integer(INT32)::nabiobs
     integer(INT32)::nchanl
     integer(INT32)::nreal
+    real(r_kind),allocatable,dimension(:,:)::data_obsabi
     contains
     !
     subroutine read_goesabi_netcdf()
@@ -298,23 +299,28 @@ Module goesabi_obs
     end subroutine read_goesabi_netcdf
     !
     ! read abi obs array from file "abiobs_mid_file"
-    subroutine read_abiobsarray_from_file(dy_array)
+    subroutine read_abiobsarray_from_file()
         implicit none
         character(10)::obstype
         character(20)::isis
         integer(INT32)::ndata,nchanl,nreal,ilat,ilon
         integer(INT32)::k,n,nele
         integer(INT32)::istatus
-        real(r_kind),allocatable,dimension(:,:)::dy_array
         !
         open(998,file=abiobs_mid_file,form="unformatted",status="old")
         read(998)obstype,isis,nreal,nchanl,ilat,ilon,ndata
         nele = nreal + nchanl
-        allocate(dy_array(nele,ndata),stat=istatus)
-        read(998)((dy_array(k,n),k=1,nele),n=1,ndata)
+        allocate(data_obsabi(nele,ndata),stat=istatus)
+        read(998)((data_obsabi(k,n),k=1,nele),n=1,ndata)
         close(998)
         
     end subroutine
+    !
+    subroutine destory_obsabi()
+
+        if(allocated(data_obsabi))deallocate(data_obsabi)
+    end subroutine destory_obsabi
+
 
 
 END Module goesabi_obs

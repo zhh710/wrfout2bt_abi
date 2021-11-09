@@ -32,7 +32,7 @@ module parameters_define
     logical,ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: cld_abi_err !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: clr_abi_err !(nchannel,npass)
-    NAMELIST /adas_abi/ abi_file,abiobs_mid_file,nchanl_abi,iuseabi
+    NAMELIST /adas_abi/ abi_file,abiobs_mid_file,nchanl_abi,iuseabi,wrf_file
 
     ! variables related to crtm
     ! cloud
@@ -42,32 +42,35 @@ module parameters_define
     integer::n_actual_clouds
     integer::n_clouds_fwd
     integer::n_clouds_jac
-    character(len=8),dimension(6)::cloud_names
-    character(len=8),dimension(6)::cloud_names_fwd
+    character(len=10),dimension(6)::cloud_names
+    character(len=10),dimension(6)::cloud_names_fwd
+    character(len=10),dimension(6)::cloud_names_jac
     NAMELIST /crtm_cloud/lcloud_fwd,lallsky,cld_sea_only ,&
     & n_actual_clouds,n_clouds_fwd,n_clouds_jac,          &
-    & cloud_names,cloud_names_fwd
+    & cloud_names,cloud_names_fwd,cloud_names_jac
     ! aerosol
     logical::laerosol_fwd
     logical::laerosol
     integer::n_actual_aerosols
     integer::n_aerosols_fwd
     integer::n_aerosols_jac
-    character(len=8),dimension(3)::aerosol_names
-    character(len=8),dimension(3)::aerosol_names_fwd
+    character(len=10),dimension(3)::aerosol_names
+    character(len=10),dimension(3)::aerosol_names_fwd
+    character(len=10),dimension(3)::aerosol_names_jac
     NAMELIST/crtm_aerosol/laerosol_fwd,laerosol,        &
     & n_actual_aerosols,n_aerosols_fwd,n_aerosols_jac,  &
-    & aerosol_names,aerosol_names_fwd
+    & aerosol_names,aerosol_names_fwd,aerosol_names_jac
     ! trace gase
     integer::n_ghg
-    character(len=8),dimension(5)::ghg_names
+    character(len=8),dimension(6)::ghg_names
     NAMELIST/crtm_tracegase/n_ghg,ghg_names
     !
-    character(len=10)::isis
+    character(len=20)::isis
+    character(len=10)::obstype
     integer::nchanl
     integer::subset_start
     integer::subset_end
-    NAMELIST/goesabi/isis,nchanl,subset_start,subset_end
+    NAMELIST/goesabi/isis,obstype,nchanl,subset_start,subset_end
     !
     character(len=200)::crtm_coeffs_path
     NAMELIST/crtm_coeffs/crtm_coeffs_path
@@ -123,14 +126,14 @@ module parameters_define
         nvege_type=20
         regional=.TRUE.
         !
-        open(88,file=parameter_file,status='new')
-        write(88,NML=adas_abi)
-        write(88,NML=crtm_cloud)
-        write(88,NML=crtm_aerosol)
-        write(88,NML=crtm_tracegase)
-        write(88,NML=goesabi)
-        write(88,NML=crtm_coeffs)
-        write(88,NML=gridmod)
+        open(88,file=parameter_file,status='old')
+        read(88,NML=adas_abi)
+        read(88,NML=crtm_cloud)
+        read(88,NML=crtm_aerosol)
+        read(88,NML=crtm_tracegase)
+        read(88,NML=goesabi)
+        read(88,NML=crtm_coeffs)
+        read(88,NML=gridmod)
         close(88)
 
     end subroutine

@@ -7,7 +7,9 @@ MODULE model_precision
 
   INTEGER, PARAMETER :: INT16 =  SELECTED_INT_KIND(4)
   INTEGER, PARAMETER :: INT32 =  SELECTED_INT_KIND(8)
+  INTEGER, PARAMETER :: INT64 =  SELECTED_INT_KIND(16)
   INTEGER, PARAMETER :: i_kind =  SELECTED_INT_KIND(8)
+  INTEGER, PARAMETER :: i_long =  SELECTED_INT_KIND(8)
 
   ! Choose one to run in single or double precision.
   INTEGER, PARAMETER  :: P  = KIND(1.0)           ! Single precision

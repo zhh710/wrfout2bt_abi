@@ -8,6 +8,8 @@ module read_wrf
     !3d arrays allocated in init_wrfinput_array
     real(P),allocatable,dimension(:,:,:)::pmid! pressure at mass levels, Pa
     real(P),allocatable,dimension(:,:,:)::pml ! pressure at full levels, Pa
+    real(P),allocatable,dimension(:,:,:)::hgt ! geopotential height, m
+    real(P),allocatable,dimension(:,:,:)::h   ! height, m
     real(P),allocatable,dimension(:,:,:)::t   ! full poten TEMP, K
     real(P),allocatable,dimension(:,:,:)::tk  ! full TEMP, K
     real(P),allocatable,dimension(:,:,:)::u,v ! ms-1
@@ -28,6 +30,7 @@ module read_wrf
     real(P),allocatable,dimension(:,:)::lon,lat   ! degree
     real(P),allocatable,dimension(:,:)::rlons,rlats ! radian
     real(P),allocatable,dimension(:,:)::psfc    ! SFC PRESSURE,Pa,PSFC
+    real(P),allocatable,dimension(:,:)::tropprs ! tropopause pressure
     real(P),allocatable,dimension(:,:)::czen    ! cos(solar zenith angle),COSCEN
     integer(INT32),allocatable,dimension(:,:)::ivgtyp  ! VEGETATION CATEGORY,IVGTYP
     integer(INT32),allocatable,dimension(:,:)::isltyp  ! DOMINANT SOIL CATEGORY
@@ -79,7 +82,10 @@ module read_wrf
     integer(INT32)::JULDAY !JULDAY
     integer(INT32)::JULYR !JULYR
     integer(INT32)::iwinbgn
+    integer(INT32)::idates(5)
     !
+    public::idates
+    public::isli_full,sno_full
     public:: load_data,destory_wrfinput_array
     private:: dim_,get_dims,init_wrfinput_array
     !
@@ -137,6 +143,8 @@ module read_wrf
             if(istatus/=0)write(6,*)"ALLOCATE rlons(nx,ny) error"
             allocate(psfc(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE psfc(nx,ny) error"
+            allocate(tropprs(nx,ny),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE tropprs(nx,ny) error"
             allocate(czen(nx,ny),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE czen(nx,ny) error"
             allocate(ivgtyp(nx,ny),stat=istatus)
@@ -183,6 +191,12 @@ module read_wrf
             !Potential temperature,K
             allocate(t(nx,ny,nz),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE t(nx,ny,nz) error"
+            ! geopotential height at mid-layers(m)
+            allocate(hgt(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE hgt(nx,ny,nz) error"
+            ! height, m
+            allocate(h(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE h(nx,ny,nz) error"
             ! temperature ,K
             allocate(tk(nx,ny,nz),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE tk(nx,ny,nz) error"
@@ -210,11 +224,13 @@ module read_wrf
             if(allocated(eta1)) deallocate(eta1,stat=istatus)
             if(allocated(eta2))deallocate(eta2,stat=istatus)
             !
+            print*,"DESTORY 2D ARRAY"
             if(allocated(lat))deallocate(lat,stat=istatus)
             if(allocated(lon))deallocate(lon,stat=istatus)
             if(allocated(rlats))deallocate(rlats,stat=istatus)
             if(allocated(rlons))deallocate(rlons,stat=istatus)
             if(allocated(psfc))deallocate(psfc,stat=istatus)
+            if(allocated(tropprs))deallocate(tropprs,stat=istatus)
             if(allocated(czen))deallocate(czen,stat=istatus)
             if(allocated(vegfrac))deallocate(vegfrac,stat=istatus)
             if(allocated(ivgtyp))deallocate(ivgtyp,stat=istatus)
@@ -234,14 +250,27 @@ module read_wrf
             if(allocated(isli_full))deallocate(isli_full,stat=istatus)
             if(allocated(fact10_full))deallocate(fact10_full,stat=istatus)
             !
+            print*,"DESTORY 3D ARRAY"
             if(allocated(pmid))deallocate(pmid,stat=istatus)
+            print*,"DESTORY PMID  ARRAY"
             if(allocated(pml))deallocate(pml,stat=istatus)
+            print*,"DESTORY PML  ARRAY"
+            if(allocated(hgt))deallocate(pml,stat=istatus)
+            print*,"DESTORY HGT  ARRAY"
+            if(allocated(h))deallocate(pml,stat=istatus)
+            print*,"DESTORY H  ARRAY"
             if(allocated(u))deallocate(u,stat=istatus)
             if(allocated(v))deallocate(v,stat=istatus)
+
+            print*,"DESTORY U,V  ARRAY"
             if(allocated(oz))deallocate(oz,stat=istatus)
+            print*,"DESTORY O3  ARRAY"
             if(allocated(qv))deallocate(qv,stat=istatus)
+            print*,"DESTORY QV  ARRAY"
             if(allocated(t))deallocate(t,stat=istatus)
+            print*,"DESTORY t  ARRAY"
             if(allocated(tk))deallocate(tk,stat=istatus)
+            print*,"DESTORY tk  ARRAY"
         end subroutine destory_wrfinput_array
         !
         !load data
@@ -292,6 +321,7 @@ module read_wrf
             call get_ncd_2d(ncid,1,"LANDMASK",nx,ny,isli_full,istatus)
             where (pctsno >0.0) isli_full = 3
             where (sice >0.0) isli_full = 2
+
             ! 10m wind factor
             call comp_fact10()
             ! 3d array
@@ -320,6 +350,21 @@ module read_wrf
             !2d arrays , 10m wind factor
             call comp_fact10()
 
+            !geopotential height
+            allocate(tmp1_3d(nx,ny,nz_stagger),stat=istatus)
+            allocate(tmp2_3d(nx,ny,nz_stagger),stat=istatus) 
+            call get_ncd_3d(ncid,1,"PH",nx,ny,nz_stagger,tmp2_3d,istatus)
+            call get_ncd_3d(ncid,1,"PHB",nx,ny,nz_stagger,tmp1_3d,istatus)
+
+            call height_mid_layer( tmp1_3d , tmp2_3d,hgt)
+            deallocate(tmp1_3d,stat=istatus)
+            deallocate(tmp2_3d,stat =istatus)
+            ! height, m
+            h = hgt/9.81
+            ! tropopause pressure
+            call tpause(pmid,tk,h,tropprs,nx,ny,nz)
+            print*,"tropopause pressure: ",minval(tropprs),maxval(tropprs)
+
 
         end subroutine load_data
         !
@@ -328,7 +373,7 @@ module read_wrf
         subroutine get_base_value()
             implicit none
             character(len=19)::Times
-            integer(INT32)::idates(5)
+            !integer(INT32)::idates(5)
             integer(INT32)::varid
             integer(INT32)::istatus
             p00 = 100000. ! Pa
@@ -353,6 +398,7 @@ module read_wrf
             istatus = nf90_get_var(ncid,varid,Times)
             read(Times,"(I4,1x,I2,1x,I2,1x,I2,1x,I2)")idates
             call w3fs21(idates,iwinbgn)
+            print*,"Idates: ",idates(5)
 
 
         end subroutine get_base_value
@@ -429,6 +475,28 @@ module read_wrf
             enddo
 
         end subroutine get_full_pressure
+        !
+        subroutine height_mid_layer( tmp1_3d , tmp2_3d,hgt)
+            implicit none
+            real(P),dimension(nx,ny,nz_stagger),intent(in)::tmp1_3d
+            real(P),dimension(nx,ny,nz_stagger),intent(in)::tmp2_3d
+            real(P),dimension(nx,ny,nz),intent(out)::hgt
+            integer::i,j,k
+            !
+            real(P),dimension(nx,ny,nz_stagger)::ph_full
+            !
+            ph_full = tmp1_3d + tmp2_3d
+
+            do k=1,nz
+                do j=1,ny
+                    do i=1,nx
+                        hgt(i,j,k) = 0.5*(ph_full(i,j,k)+ph_full(i,j,k+1))
+                    end do
+                enddo
+                print*,"Geopotential height : ",k,minval(hgt(:,:,k)),maxval(hgt(:,:,k))
+            end do
+
+        end subroutine height_mid_layer
         !
         !compute 10m wind factor
         !
@@ -917,7 +985,7 @@ SUBROUTINE get_ncd_3d(ncid,itime,varname,nx,ny,nz,var3d,istatus)
 !-----------------------------------------------------------------------
 
   INTEGER(INT32)                    :: varid
-  CHARACTER(LEN=NF90_MAX_NAME) :: namein
+  CHARACTER(LEN=NF90_MAX_NAME)      :: namein
   INTEGER(INT32)                    :: vartype, ndims,natts,dimlen
   INTEGER(INT32)                    :: dimids(NF90_MAX_VAR_DIMS)
 
@@ -981,7 +1049,7 @@ SUBROUTINE get_ncd_3d(ncid,itime,varname,nx,ny,nz,var3d,istatus)
                     ' however, the required time level is ',itime
     STOP 'itime_tool_large'
   END IF
-
+  !print*," NF90_GET_VAR(ncid,varid,var3d,(/1,1,1,itime/): ",TRIM(varname)
   istatus = NF90_GET_VAR(ncid,varid,var3d,(/1,1,1,itime/),               &
                              (/nx,ny,nz,1/))
   IF(istatus /= NF90_NOERR .OR. istatus /= NF90_EEXIST) THEN

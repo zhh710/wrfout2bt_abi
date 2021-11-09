@@ -37,12 +37,13 @@ use crtm_module, only: crtm_atmosphere_type,crtm_surface_type,crtm_geometry_type
     RT_SOI
 use crtm_aod_module, only: crtm_aod_k
 use crtm_module, only: limit_exp,o3_id
+use crtm_module, only: crtm_atmosphere_inspect
 
 implicit none
 
 private
 public init_crtm            ! Subroutine initializes crtm for specified instrument
-!public call_crtm            ! Subroutine creates profile for crtm, calls crtm, then adjoint of create
+public call_crtm            ! Subroutine creates profile for crtm, calls crtm, then adjoint of create
 public destroy_crtm         ! Subroutine destroys initialization for crtm
 public sensorindex
 public surface
@@ -163,8 +164,9 @@ public itz_tr               ! = 37/39 index of d(Tz)/d(Tr)
   integer(i_kind),save :: nvege_type
   integer(i_kind),save :: nsig
   integer(i_kind),save :: msig
-  integer(i_kind),save :: nsigaerojac
-  integer(i_kind),save :: nsigradjac
+  integer(i_kind),save,public:: nsigaerojac
+  integer(i_kind),save,public:: nsigradjac
+  public:: iqv,icw
   integer(i_kind),dimension(200),save :: nlayers
 
   integer(i_kind), parameter :: min_n_absorbers = 2
@@ -336,6 +338,7 @@ subroutine init_crtm(init_pass,mype_diaghdr,mype,                     &
   if(itv>=0)mvl=mvl+1
 
 !
+
  if (lcloud_fwd) then
   ! 
     allocate(cloud_cont(msig,n_clouds_fwd))
@@ -347,7 +350,7 @@ subroutine init_crtm(init_pass,mype_diaghdr,mype,                     &
 
     !
     allocate(cloud_names(n_actual_clouds))
-    allocate(cloud_names_fwd(n_actual_clouds_wk))
+    allocate(cloud_names_fwd(n_clouds_fwd))
     allocate(cloud_names_jac(n_clouds_jac))
 
 
@@ -355,8 +358,9 @@ subroutine init_crtm(init_pass,mype_diaghdr,mype,                     &
        cloud_names(ii) = cloud_names0(ii)
     end do
 
-    do ii=1,n_actual_clouds_wk
+    do ii=1, n_clouds_fwd
        cloud_names_fwd(ii) = cloud_names_fwd0(ii)
+       !print*,"cloud_names_fwd(ii)",cloud_names_fwd(ii)
     end do
 
     do ii=1,n_clouds_jac
@@ -801,7 +805,7 @@ subroutine destroy_crtm
   return
 end subroutine destroy_crtm
 !
-subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
+subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
 	            &   mype, lon2,lat2,&            
 	            &   psges,tkges,qges ,prslges,prsiges,&
 	            &   uu5ges,vv5ges,tropprs, &
@@ -847,6 +851,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 !   input argument list:
 !     obstype      - type of observations for which to get profile
 !     obstime      - time of observations for which to get profile, not used here
+!     iadate       - array(5), year,month,day,hour,minute
 !     data_s       - array containing input data information
 !     nchanl       - number of channels
 !     nreal        - number of descriptor information in data_s
@@ -858,8 +863,8 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 !     psges        - surface pressure         ,  hPa
 !     tkges        - temperature              ,  K
 !     qges         - specific humidity        ,  kg kg-1
-!     prslges      - layer pressure (...,nsig),  hPa
-!     prsiges      - level pressure (...,nsig+1),hPa
+!     prslges      - layer pressure (...,nsig),  kPa
+!     prsiges      - level pressure (...,nsig+1),kPa
 !     uu5ges       - bottom sigma level zonal wind 
 !     vv5ges       - bottom sigma level zonal wind 
 !     tropprs      - tropopause pressure      ,  hPa
@@ -879,8 +884,8 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 !   output argument list:
 !     h            - interpolated temperature
 !     q            - interpolated specific humidity (max(qsmall,q))
-!     prsl         - interpolated layer pressure (nsig)
-!     prsi         - interpolated level pressure (nsig+1)
+!     prsl         - interpolated layer pressure (nsig),kPa
+!     prsi         - interpolated level pressure (nsig+1),kPa
 !     trop5        - interpolated tropopause pressure
 !     tzbgr        - water surface temperature used in Tz retrieval
 !     dtsavg       - delta average skin temperature over surface types
@@ -907,9 +912,9 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 !--------
   implicit none
 ! Declare passed variables
-  real(r_kind)                          ,intent(in   ) :: obstime ! not used
+!  real(r_kind)                          ,intent(in   ) :: obstime ! not used
+  integer(i_kind) ,dimension(5)         ,intent(in   ) :: iadate
   integer(i_kind)                       ,intent(in   ) :: nchanl,nreal
-  integer(i_kind),dimension(nchanl)     ,intent(in   ) :: ich
 
   integer(i_kind)                       ,intent(in   ) :: lon2,lat2
   integer(i_kind)                       ,intent(in   ) :: mype
@@ -918,7 +923,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
   real(r_kind),dimension(lat2,lon2,nsig+1),intent(  in ) :: prsiges
   real(r_kind),dimension(lat2,lon2     ),intent(  in ) :: uu5ges,vv5ges
   real(r_kind),dimension(lat2,lon2     ),intent(  in ) :: tropprs
-  integer     ,dimension(lat2,lon2     ),intent(  in ) :: isli2
+  real(r_kind),dimension(lat2,lon2     ),intent(  in ) :: isli2
   real(r_kind),dimension(lat2,lon2     ),intent(  in ) :: sno2
   real(r_kind),dimension(lat2,lon2     ),intent(  in ) :: dsfct
 
@@ -1076,11 +1081,13 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
   do k=1,nsig
       if(k == 1)then
         jacobian=zero
+
 !    Set surface type flag.  (Same logic as in subroutine deter_sfc)
         istyp00 = isli2(ix ,iy )
         istyp10 = isli2(ixp,iy )
         istyp01 = isli2(ix ,iyp)
         istyp11 = isli2(ixp,iyp)
+
         sno00= sno2(ix ,iy )
         sno01= sno2(ix ,iyp)
         sno10= sno2(ixp,iy )
@@ -1098,7 +1105,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 
         dtskin(0:3)=zero
         wgtavg(0:3)=zero
-
+print*,"Find delta Surface temperatures for all surface types",sno00,istyp00,sst00
         if(istyp00 == 1)then
            wgtavg(1) = wgtavg(1) + w00
            dtskin(1)=dtskin(1)+w00*sst00
@@ -1184,6 +1191,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 
         endif
 !       skip loading surface structure if obstype is modis_aod/viirs_aod (logaod)
+print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod)"
         if (.not. logaod) then
 
 !       Load surface structure
@@ -1271,7 +1279,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
            surface(1)%Lai  = zero
            if (surface(1)%land_coverage>zero) then
               if(lai_type>0)then
-                call get_lai(data_s,nchanl,nreal,itime,ilate,lai_type,lai)
+                call get_lai(data_s,nchanl,nreal,itime,ilate,lai_type,iadate,lai)
                 surface(1)%Lai  = lai   ! LAI  
               endif     
      
@@ -1475,6 +1483,8 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 
   call add_rtm_layers(prsi,prsl,prsi_rtm,prsl_rtm,klevel)
 
+
+
 !       check trace gases
   if (n_ghg>0) then
     !allocate (tgas1d(nsig,n_ghg))
@@ -1534,6 +1544,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 
   sea = min(max(zero,data_s(ifrac_sea)),one)  >= 0.99_r_kind
   icmask = (sea .and. cld_sea_only_wk) .or. (.not. cld_sea_only_wk)
+
   if(m1 .eq. 1) write(6,*)'SETUPRAD*CRTM_INTERFACE*CALL_CRTM: ',&
       'icmask(mask determining where to consider cloud): ',icmask,&
       'mixed_use : ',mixed_use
@@ -1560,7 +1571,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
         do ig=1,n_ghg
            j=min_n_absorbers+ ig
            ! default value for CO2
-           if(j==3)atmosphere(1)%absorber(k,j) = 380.0
+           if(j==3)atmosphere(1)%absorber(k,j) = 400.0
            
         enddo
      endif
@@ -1642,10 +1653,18 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
      !                        atmosphere(1)%aerosol )
   endif
 ! Call CRTM K Matrix model
+  print*,myname_,"*q:",minval(q),maxval(q)
+  print*,myname_,"*prsi:",minval(prsi),maxval(prsi)
+  print*,myname_,"*prsi_rtm:",minval(prsi_rtm),maxval(prsi_rtm)
+  do ig=1,n_clouds_fwd_wk
+      print*,myname_,"*cloud_name :",cloud_names(ig),minval(cloud_cont(:,ig)),maxval(cloud_cont(:,ig))
+  end do
 
+  call crtm_atmosphere_inspect(atmosphere)
 
   error_status = 0
   if ( .not. logaod  ) then
+     print*,"call crtm_k_matrix: rtsolution"
      error_status = crtm_k_matrix(atmosphere,surface,rtsolution_k,&
         geometryinfo,channelinfo(sensorindex:sensorindex),atmosphere_k,&
         surface_k,rtsolution,options=options)
@@ -1653,6 +1672,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
      if (mixed_use) then 
         ! Zero out data array in cloud structure
         atmosphere(1)%n_clouds = 0
+        print*,"call crtm_k_matrix: n_clouds = 0"
         error_status_clr = crtm_k_matrix(atmosphere,surface,rtsolution_k_clr,&
            geometryinfo,channelinfo(sensorindex:sensorindex),atmosphere_k_clr,&
            surface_k_clr,rtsolution_clr,options=options)
@@ -1683,6 +1703,7 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 !    call crtm_cloud_zero(atmosphere(1)%cloud)
 
      ! call crtm forward model for clear-sky calculation
+     print*,"call crtm_forward: n_clouds = 0"
      error_status = crtm_forward(atmosphere,surface,&
                                  geometryinfo,channelinfo(sensorindex:sensorindex),&
                                  rtsolution0,options=options)
@@ -1739,7 +1760,9 @@ subroutine call_crtm(obstype,obstime,data_s,nchanl,nreal,ich, &
 
 !  Surface temperature sensitivity
 !        nst_gsi = 0
-       if(nst_gsi>1 .and. (data_s(itz_tr) > zero .and. data_s(itz_tr) <= one) ) then
+
+       if(nst_gsi>1  ) then
+          if (data_s(itz_tr) > zero .and. data_s(itz_tr) <= one) &
           ts(i)   = surface_k(i,1)%water_temperature*data_s(itz_tr) + &
                     surface_k(i,1)%land_temperature + &
                     surface_k(i,1)%ice_temperature + &
@@ -2194,6 +2217,7 @@ subroutine setCloud (cloud_name, icmask, cloud_cont, cloud_efr,dp, tp, pr, qh, c
 !       Map Model cloud names into CRTM Cloud indices
 !       ---------------------------------------------
         Cloud(n)%Type = CloudType_(cloud_name(n))
+        !print*,myname,"*CloudType_:",CloudType_(cloud_name(n)),cloud_name(n)
 
         if(icmask) then
            Cloud(n)%water_content(:) = cloud_cont(:,n)
@@ -2207,7 +2231,9 @@ subroutine setCloud (cloud_name, icmask, cloud_cont, cloud_efr,dp, tp, pr, qh, c
            if (regional .and. (.not. wrf_mass_regional)) then
               cloud(n)%Effective_Radius(:) = cloud_efr(:,n)
            else
-              cloud(n)%Effective_Radius(:) = EftSize_(cloud_name(jcloud(n)))
+              cloud(n)%Effective_Radius(:) = EftSize_(cloud_name(n))
+              !print*,myname,"*EftSize_(cloud_name(n)):",EftSize_(cloud_name(n)),cloud_name(n)
+
            end if
         else
            cloud(n)%Effective_Radius(:) = zero
@@ -2276,5 +2302,106 @@ function EftSize_(name) Result(csize)
 
 end function EftSize_
 !
+subroutine get_lai(data_s,nchanl,nreal,itime,ilate,lai_type,iadate,lai)
+!$$$  subprogram documentation block
+!                .      .    .                                       .
+! subprogram:    get_lai   interpolate vegetation LAI data for call_crtm
+!
+!   prgmmr:
+!
+! abstract:
+!
+! program history log:
+!
+!   input argument list:
+!     data_s       - array containing input data information
+!     nchanl       - number of channels
+!     nreal        - number of descriptor information in data_s
+!     itime        - index of analysis relative obs time
+!     ilate        - index of earth relative latitude (degrees)
+!
+!   output argument list:
+!     lai          - interpolated vegetation leaf-area-index for various types (13)
+!
+!   language: f90
+!   machine:  ibm RS/6000 SP
+!   
+!$$$
+!--------
+  !use kinds, only: r_kind,i_kind
+  !!use constants, only: zero
+  !use obsmod, only: iadate
+  use w3nco,only:w3movdat,w3doxdat
+  implicit none
 
+! Declare passed variables
+  integer(i_kind)                       ,intent(in   ) :: nchanl,nreal
+  real(r_kind),dimension(nchanl+nreal)  ,intent(in   ) :: data_s
+  integer(i_kind)                       ,intent(in   ) :: itime, ilate,lai_type
+  integer(i_kind) ,dimension(5)         ,intent(in   ) :: iadate
+  real(r_kind)                          ,intent(  out) :: lai
+
+! Declare local variables
+  integer(i_kind),dimension(8)::obs_time,anal_time
+  real(r_kind),dimension(5)     :: tmp_time
+
+  
+  integer(i_kind) jdow, jdoy, jday
+  real(r_kind)    rjday
+  real(r_kind),dimension(3):: dayhf
+  data dayhf/15.5_r_kind, 196.5_r_kind, 380.5_r_kind/
+  real(r_kind),dimension(13):: lai_min, lai_max
+  data lai_min/3.08_r_kind, 1.85_r_kind, 2.80_r_kind, 5.00_r_kind, 1.00_r_kind, &
+               0.50_r_kind, 0.52_r_kind, 0.60_r_kind, 0.50_r_kind, 0.60_r_kind, &
+               0.10_r_kind, 1.56_r_kind, 0.01_r_kind            /
+  data lai_max/6.48_r_kind, 3.31_r_kind, 5.50_r_kind, 6.40_r_kind, 5.16_r_kind, &
+               3.66_r_kind, 2.90_r_kind, 2.60_r_kind, 3.66_r_kind, 2.60_r_kind, &
+               0.75_r_kind, 5.68_r_kind, 0.01_r_kind            /
+  real(r_kind),dimension(2):: lai_season
+  real(r_kind)    wei1s, wei2s
+  integer(i_kind) n1, n2, mm, mmm, mmp
+  real(r_kind),parameter::zero=0.0_r_kind
+!
+      anal_time=0
+      obs_time=0
+      tmp_time=zero
+      tmp_time(2)=data_s(itime)
+      anal_time(1)=iadate(1)
+      anal_time(2)=iadate(2)
+      anal_time(3)=iadate(3)
+      anal_time(5)=iadate(4)
+      call w3movdat(tmp_time,anal_time,obs_time)
+
+      jdow = 0
+      jdoy = 0
+      jday = 0
+      call w3doxdat(obs_time,jdow,jdoy,jday)
+      rjday=jdoy+obs_time(5)/24.0_r_kind
+      if(rjday.lt.dayhf(1)) rjday=rjday+365.0
+
+      DO MM=1,2
+        MMM=MM
+        MMP=MM+1
+        IF(RJDAY.GE.DAYHF(MMM).AND.RJDAY.LT.DAYHF(MMP)) THEN
+            N1=MMM
+            N2=MMP
+            GO TO 10
+        ENDIF
+      ENDDO
+      PRINT *,'WRONG RJDAY',RJDAY
+   10 CONTINUE
+      WEI1S = (DAYHF(N2)-RJDAY)/(DAYHF(N2)-DAYHF(N1))
+      WEI2S = (RJDAY-DAYHF(N1))/(DAYHF(N2)-DAYHF(N1))
+      IF(N2.EQ.3) N2=1
+
+      lai_season(1) = lai_min(lai_type)
+      lai_season(2) = lai_max(lai_type)
+      if(data_s(ilate) < 0.0_r_kind) then
+         lai = wei1s * lai_season(n2) + wei2s * lai_season(n1)
+      else
+         lai = wei1s * lai_season(n1) + wei2s * lai_season(n2)
+      endif
+
+  return
+  end subroutine get_lai
 end module crtm_interface
