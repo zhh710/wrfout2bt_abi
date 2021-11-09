@@ -238,15 +238,15 @@ public itz_tr               ! = 37/39 index of d(Tz)/d(Tr)
 contains
 
 subroutine init_crtm(init_pass,mype_diaghdr,mype,                     &
-	& nchanl,isis,obstype,subset_start,subset_end,                    &
-	& nsig0,                                                      &
-	& lcloud_fwd,lallsky,cld_sea_only,n_actual_clouds,n_clouds_fwd,   &
-	& n_clouds_jac,cloud_names0,cloud_names_fwd0,cloud_names_jac0,    &
-	& laerosol_fwd,laerosol,n_actual_aerosols,n_aerosols_fwd,         &
-	& n_aerosols_jac,aerosol_names0,aerosol_names_fwd0,aerosol_names_jac0,&
-	& n_ghg0,ghg_names0,                                                &
-	& crtm_coeffs_path,                                               &
-	& regional0,nvege_type0,cold_start0)
+     nchanl,isis,obstype,subset_start,subset_end,                    &
+     nsig0,                                                      &
+     lcloud_fwd,lallsky,cld_sea_only,n_actual_clouds,n_clouds_fwd,   &
+     n_clouds_jac,cloud_names0,cloud_names_fwd0,cloud_names_jac0,    &
+     laerosol_fwd,laerosol,n_actual_aerosols,n_aerosols_fwd,         &
+     n_aerosols_jac,aerosol_names0,aerosol_names_fwd0,aerosol_names_jac0,&
+     n_ghg0,ghg_names0,                                                &
+     crtm_coeffs_path,                                               &
+     regional0,nvege_type0,cold_start0)
 
     !msig: n_layers
     ! These parameters can be read from namelist
@@ -806,10 +806,10 @@ subroutine destroy_crtm
 end subroutine destroy_crtm
 !
 subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
-	            &   mype, lon2,lat2,&            
-	            &   psges,tkges,qges ,prslges,prsiges,&
-	            &   uu5ges,vv5ges,tropprs, &
-	            &   isli2,sno2, dsfct,    &
+           &   mype, lon2,lat2,&            
+           &   psges,tkges,qges ,prslges,prsiges,&
+           &   uu5ges,vv5ges,tropprs, &
+           &   isli2,sno2, dsfct,    &
                 &   h,q,clw_guess,prsl,prsi, &
                 &   trop5,tzbgr,dtsavg,sfc_speed,&
                 &   tsim,emissivity,ptau5,ts, &
@@ -1105,7 +1105,7 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
 
         dtskin(0:3)=zero
         wgtavg(0:3)=zero
-print*,"Find delta Surface temperatures for all surface types",sno00,istyp00,sst00
+!print*,"Find delta Surface temperatures for all surface types",sno00,istyp00,sst00
         if(istyp00 == 1)then
            wgtavg(1) = wgtavg(1) + w00
            dtskin(1)=dtskin(1)+w00*sst00
@@ -1191,7 +1191,7 @@ print*,"Find delta Surface temperatures for all surface types",sno00,istyp00,sst
 
         endif
 !       skip loading surface structure if obstype is modis_aod/viirs_aod (logaod)
-print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod)"
+!print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod)"
         if (.not. logaod) then
 
 !       Load surface structure
@@ -1703,10 +1703,12 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
 !    call crtm_cloud_zero(atmosphere(1)%cloud)
 
      ! call crtm forward model for clear-sky calculation
+     call crtm_atmosphere_inspect(atmosphere)
      print*,"call crtm_forward: n_clouds = 0"
      error_status = crtm_forward(atmosphere,surface,&
                                  geometryinfo,channelinfo(sensorindex:sensorindex),&
                                  rtsolution0,options=options)
+     !print*,"call crtm_forward: n_clouds = 0, finished"
      ! If the CRTM returns an error flag, do not assimilate any channels for this ob
      ! and set the QC flag to 10 (done in setuprad).
      if (error_status /=0) then
@@ -1742,6 +1744,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
          ptau5(k,i)=zero
          wmix(k,i)=zero
        end do
+       !!print*,"Zero jacobian and transmittance arrays"
 !  Simulated brightness temperatures
        tsim(i)=rtsolution(i,1)%brightness_temperature
 
@@ -1752,11 +1755,13 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
              tsim_clr(i)=rtsolution0(i,1)%brightness_temperature  
           end if
        end if
+       !print*,"Simulated brightness temperatures"
 !  Estimated emissivity
        emissivity(i)   = rtsolution(i,1)%surface_emissivity
 
 !  Emissivity sensitivities
        emissivity_k(i) = rtsolution_k(i,1)%surface_emissivity
+       !print*,"Emissivity sensitivities"
 
 !  Surface temperature sensitivity
 !        nst_gsi = 0
@@ -1776,6 +1781,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
  
 
        if (abs(ts(i))<sqrt_tiny_r_kind) ts(i) = sign(sqrt_tiny_r_kind,ts(i))
+       !print*,"Surface temperature sensitivity"
 
 
 !  Surface wind sensitivities
@@ -1787,6 +1793,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
           uwind_k(i)    = zero
           vwind_k(i)    = zero
        endif
+       !print*,"Surface wind sensitivities"
 
 
        total_od = zero
@@ -1803,6 +1810,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
           total_od   = total_od + rtsolution(i,1)%layer_optical_depth(k)
           ptau5(kk,i) = exp(-min(real(limit_exp),real(total_od*secant_term)))
        end do
+       !print*,"Accumulate values from extended into model layers"
 
 !  Load jacobian array
        do k=1,nsig
@@ -1810,6 +1818,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
 !  Small sensitivities for temp
           if (abs(temp(k,i))<sqrt_tiny_r_kind) temp(k,i)=sign(sqrt_tiny_r_kind,temp(k,i))
        end do ! <nsig>
+       !print*,"Small sensitivities for temp"
 !  Deflate moisture jacobian above the tropopause.
        if (itv>=0) then
           do k=1,nsig
@@ -1834,6 +1843,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
           end do ! <nsig>
 !        end if
        endif
+       !print*,"Deflate moisture jacobian above the tropopause."
        !
        if (n_clouds_fwd_wk>0 .and. n_clouds_jac_wk>0) then
           !if (lcloud4crtm_wk(i)<=0) then 
@@ -1876,7 +1886,9 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
        if (isst>=0) then
            jacobian(isst+1,i)=ts(i)             ! surface skin temperature sensitivity
        endif
+       !print*,"ius,ivs,isst,k:",ius,ivs,isst,i
     end do
+!$omp barrier
 
   else                                    !       obstype == 'modis_aod'/viirs_aod
      ! initialize intent(out) variables that are not available with modis_aod
@@ -1920,6 +1932,7 @@ print*,"skip loading surface structure if obstype is modis_aod/viirs_aod (logaod
 
 if(allocated(tgas1d))deallocate (tgas1d)
 
+return
 end subroutine call_crtm
 !
  subroutine stop2(ierror_code)

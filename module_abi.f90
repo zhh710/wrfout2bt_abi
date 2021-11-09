@@ -55,15 +55,15 @@ module module_abi
             real(r_kind),dimension(lat2,lon2)::dsfct
             !
   real(r_kind)                           :: trop5,tzbgr
-  real(r_kind),dimension(nsig)           :: h,q,prsl
-  real(r_kind),dimension(nsig+1)         :: prsi
   real(r_kind)                           :: sfc_speed,dtsavg
-  real(r_kind),dimension(nchanl)         :: tsim,emissivity,ts,emissivity_k
   integer(i_kind)                        :: error_status
-  real(r_kind),dimension(nsig,nchanl)    :: temp,ptau5,wmix
-  real(r_kind),dimension(nsigradjac,nchanl) :: jacobian
   real(r_kind)                           :: clw_guess
-  real(r_kind),dimension(nchanl)         :: tsim_clr 
+  real(r_kind),dimension(:),allocatable :: tsim_clr 
+  real(r_kind),dimension(:),allocatable :: h,q,prsl
+  real(r_kind),dimension(:),allocatable :: prsi
+  real(r_kind),dimension(:),allocatable :: tsim,emissivity,ts,emissivity_k
+  real(r_kind),dimension(:,:),allocatable ::temp,ptau5,wmix 
+  real(r_kind),dimension(:,:),allocatable ::jacobian
             !
             !
             init_pass = .TRUE.
@@ -97,10 +97,26 @@ module module_abi
              !
              call read_abiobsarray_from_file()
              dsfct = 0.
-             do n=1,1
+             !
+             allocate(h(nsig),q(nsig),prsl(nsig))
+             allocate(prsi(nsig+1))
+             allocate(tsim_clr(nchanl))
+             allocate(tsim(nchanl))
+             allocate(emissivity(nchanl))
+             allocate(ts(nchanl))
+             allocate(emissivity_k(nchanl))
+             allocate(temp(nsig,nchanl))
+             allocate(ptau5(nsig,nchanl))
+             allocate(wmix(nsig,nchanl))
+             allocate(jacobian(nsigradjac,nchanl))
+             tsim=0.
+             tsim_clr=0.
+             do n=300,300
+                 ! init arrays
 
                 print*,"OBS : ",data_s(:,n)
                 print*,iadate,lon2,lat2
+                print*,nchanl
 
                     call  call_crtm(obstype,iadate,data_s(:,n),nchanl,nreal, &
                 &   mype, lon2,lat2,&            
@@ -113,6 +129,7 @@ module module_abi
                 &   emissivity_k,temp,wmix,jacobian,error_status,tsim_clr=tsim_clr, &
                 &   qrges=qrges,qsges=qsges,qgges=qgges,qiges=qiges,                &
                 &   qhges=qhges,qlges=qlges) 
+                    print*,'Simulated TB CLEAR: '
                     print*,'Simulated TB CLEAR: ',tsim_clr
                     print*,'Simulated TB ALL SKY: ',tsim
                     print*,"OBS TB      : ",data_s(nreal+1:nreal+nchanl,n)
@@ -122,6 +139,17 @@ module module_abi
             enddo
             !
             print*,iqv,icw
+             deallocate(h,q,prsl)
+             deallocate(prsi)
+             deallocate(tsim_clr)
+             deallocate(tsim)
+             deallocate(emissivity)
+             deallocate(ts)
+             deallocate(emissivity_k)
+             deallocate(temp)
+             deallocate(ptau5)
+             deallocate(wmix)
+             deallocate(jacobian)
             call destroy_crtm()
 
         end subroutine setuprad
