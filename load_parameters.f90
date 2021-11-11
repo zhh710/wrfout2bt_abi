@@ -28,11 +28,14 @@ module parameters_define
     character(LEN=40)::wrf_file
     character(LEN=40)::abi_file
     character(LEN=40)::abiobs_mid_file
+    character(LEN=40)::tbfout
+    character(LEN=200)::datapath
     INTEGER(INT32)::nchanl_abi
     logical,ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: cld_abi_err !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: clr_abi_err !(nchannel,npass)
-    NAMELIST /adas_abi/ abi_file,abiobs_mid_file,nchanl_abi,iuseabi,wrf_file
+    NAMELIST /adas_abi/ abi_file,abiobs_mid_file, &
+        &               nchanl_abi,iuseabi,wrf_file,tbfout,datapath
 
     ! variables related to crtm
     ! cloud
@@ -86,6 +89,8 @@ module parameters_define
         character(LEN=*),parameter::parameter_file='wrf2abi.namelist'
         !set default value
         wrf_file="wrfinput_d01.2"
+        tbfout="tb.nc"
+        datapath="./"
         abi_file="goes.nc"
         abiobs_mid_file="abiobs.dat"
         nchanl_abi=10

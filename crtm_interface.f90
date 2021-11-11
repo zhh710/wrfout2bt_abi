@@ -1660,7 +1660,7 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
       print*,myname_,"*cloud_name :",cloud_names(ig),minval(cloud_cont(:,ig)),maxval(cloud_cont(:,ig))
   end do
 
-  call crtm_atmosphere_inspect(atmosphere)
+  !call crtm_atmosphere_inspect(atmosphere)
 
   error_status = 0
   if ( .not. logaod  ) then
@@ -1703,7 +1703,7 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
 !    call crtm_cloud_zero(atmosphere(1)%cloud)
 
      ! call crtm forward model for clear-sky calculation
-     call crtm_atmosphere_inspect(atmosphere)
+     !call crtm_atmosphere_inspect(atmosphere)
      print*,"call crtm_forward: n_clouds = 0"
      error_status = crtm_forward(atmosphere,surface,&
                                  geometryinfo,channelinfo(sensorindex:sensorindex),&
