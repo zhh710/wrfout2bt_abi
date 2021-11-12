@@ -12,6 +12,8 @@ load_parameters.f90 \
 module_goesabiobs.f90 \
 gridmod.f90 \
 read_wrf.f90 \
+cressman_lookup.f90 \
+interp_cressman.f90 \
 module_abi.f90 \
 crtm_interface.f90 \
 deter_sfc_mod.f90 \
@@ -20,6 +22,7 @@ compute_fact10.f90 \
 rsearch.f90  \
 tpause_t.f90  \
 tpause.f90  \
+ozone.f90    \
 module_w3nco.f90
 # The complete list of source files
 SRC_FILES = $(FSRC_FILES) \

@@ -1,6 +1,6 @@
 wrfout2tb.o : wrfout2tb.F90  module_precision.o load_parameters.o read_wrf.o module_goesabiobs.o module_abi.o
 module_precision.mod : module_precision.f90
-read_wrf.o : read_wrf.f90  module_precision.o load_parameters.o compute_fact10.o module_w3nco.o tpause.o
+read_wrf.o : read_wrf.f90  module_precision.o load_parameters.o compute_fact10.o module_w3nco.o tpause.o ozone.o
 load_parameters.o : load_parameters.f90 module_precision.o
 module_goesabiobs.o : module_goesabiobs.f90  module_precision.o load_parameters.o gridmod.o module_w3nco.o deter_sfc_mod.o read_wrf.o
 gridmod.o : gridmod.f90 module_precision.o load_parameters.o read_wrf.o
@@ -8,8 +8,11 @@ da_roughness_from_lanu.o : da_roughness_from_lanu.f90
 module_w3nco.o : module_w3nco.f90
 compute_fact10.o : compute_fact10.f90 
 deter_sfc_mod.o : deter_sfc_mod.f90 read_wrf.o load_parameters.o
-module_abi.o : module_abi.f90 load_parameters.o module_precision.o crtm_interface.o
+module_abi.o : module_abi.f90 load_parameters.o module_precision.o crtm_interface.o interp_cressman.o cressman_lookup.o
 crtm_interface.o : crtm_interface.f90 module_precision.o module_w3nco.o
 rsearch.o : rsearch.f90 module_precision.o
 tpause_t.o : tpause_t.f90 module_precision.o rsearch.o
 tpause.o : tpause.f90 module_precision.o tpause_t.o
+cressman_lookup.o : cressman_lookup.f90
+interp_cressman.o : interp_cressman.f90
+ozone.o : ozone.f90    

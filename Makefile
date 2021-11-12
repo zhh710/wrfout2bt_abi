@@ -13,6 +13,7 @@ clean:
 $(EXE_FILE):$(OBJ_FILES)
 	$(FC) $(OBJ_FILES) -o $(EXE_FILE) $(LDFLAGS) $(LIBS)
 install:
+	mkdir ./bin
 	mv wrfout2tb ./bin
 # ...Universal uninstallation
 uninstall:
