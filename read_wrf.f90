@@ -8,7 +8,7 @@ module read_wrf
     !3d arrays allocated in init_wrfinput_array
     real(P),allocatable,dimension(:,:,:)::pmid! pressure at mass levels, Pa
     real(P),allocatable,dimension(:,:,:)::pml ! pressure at full levels, Pa
-    real(P),allocatable,dimension(:,:,:)::hgt ! geopotential height, m
+    real(P),allocatable,dimension(:,:,:)::hgt ! geopotential height, gpm
     real(P),allocatable,dimension(:,:,:)::h   ! height, m
     real(P),allocatable,dimension(:,:,:)::t   ! full poten TEMP, K
     real(P),allocatable,dimension(:,:,:)::tk  ! full TEMP, K

@@ -31,11 +31,13 @@ module parameters_define
     character(LEN=40)::tbfout
     character(LEN=200)::datapath
     INTEGER(INT32)::nchanl_abi
+    logical:: ldiagout
     logical,ALLOCATABLE,DIMENSION(:,:):: iuseabi !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: cld_abi_err !(nchannel,npass)
     REAL(P),ALLOCATABLE,DIMENSION(:,:):: clr_abi_err !(nchannel,npass)
     NAMELIST /adas_abi/ abi_file,abiobs_mid_file, &
-        &               nchanl_abi,iuseabi,wrf_file,tbfout,datapath
+        &               nchanl_abi,iuseabi,wrf_file,tbfout,datapath, &
+        &               ldiagout
 
     ! variables related to crtm
     ! cloud
@@ -94,6 +96,7 @@ module parameters_define
         abi_file="goes.nc"
         abiobs_mid_file="abiobs.dat"
         nchanl_abi=10
+        ldiagout=.true.
         allocate(iuseabi(nchanl_abi,1),stat=istatus)
         iuseabi(:,:) = .False.
         iuseabi(4,1) = .True.

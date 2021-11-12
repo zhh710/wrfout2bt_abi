@@ -21,6 +21,7 @@ module module_abi
     use parameters_define,only:crtm_coeffs_path
     use parameters_define,only:nvege_type0=>nvege_type,regional0=>regional
     use parameters_define,only:tbfout,datapath
+    use parameters_define,only:ldiagout
     !
     use read_wrf,only: tropprs
     use read_wrf,only: lat2=>nx,lon2=>ny,nsig=>nz
@@ -33,6 +34,7 @@ module module_abi
     use read_wrf,only: iadate=>idates
     use read_wrf,only: lon,lat
     use read_wrf,only: ozges=>oz
+    use read_wrf,only: t,pmid,hgt,qv
     !
     use goesabi_obs,only: data_s=>data_obsabi
     use goesabi_obs,only: read_abiobsarray_from_file
@@ -241,6 +243,7 @@ contains
         !
         character (len = *), parameter :: EW_NAME = "east_west"
         character (len = *), parameter :: SN_NAME = "south_north"
+        character (len = *), parameter :: BTP_NAME = "bottom_top"
         character (len = *), parameter :: NOBS_NAME = "nobs"
         character (len = *), parameter :: CHANNEL_NAME = "channel"
         character (len = *), parameter :: TBCLD_NAME = "tb_cld"
@@ -257,8 +260,8 @@ contains
         integer :: longrid_varid, latgrid_varid
         integer :: lonobs_varid, latobs_varid
         integer :: tbcld_varid, tbclr_varid,tbobs_varid
-        integer :: ca_varid
-        integer :: ew_dimid, sn_dimid
+        integer :: ca_varid,temp_varid(22)
+        integer :: ew_dimid, sn_dimid,btp_dimid
         integer :: ch_dimid,nobs_dimid
         !
         integer::e_w,s_n
@@ -266,6 +269,7 @@ contains
         integer :: dimids1(2)
         integer :: dimids2(2)
         integer :: dimids3(3)
+        integer :: dimids4(3)
         integer :: count0(2),count3(3)
         integer :: start(2),start3(3)
         !
@@ -281,11 +285,15 @@ contains
         ! Define the dimensions. 
         call nc_check( nf90_def_dim(ncid, EW_NAME, e_w, ew_dimid) )
         call nc_check( nf90_def_dim(ncid, SN_NAME, s_n, sn_dimid) )
+        call nc_check( nf90_def_dim(ncid, BTP_NAME, nsig, btp_dimid) )
         call nc_check( nf90_def_dim(ncid, NOBS_NAME,nobs, nobs_dimid) )
         call nc_check( nf90_def_dim(ncid, CHANNEL_NAME, nc, ch_dimid) )
         dimids1 = (/ ew_dimid,sn_dimid/)
         dimids2 = (/ nobs_dimid, ch_dimid /)
         dimids3 = (/ ew_dimid,sn_dimid,ch_dimid/)
+        if(ldiagout)then
+            dimids4 = (/ ew_dimid,sn_dimid,btp_dimid/)
+        endif
         !! Define the netCDF variables
         call nc_check( nf90_def_var(ncid, LON_NAME, NF90_REAL, & 
              dimids1,longrid_varid))
@@ -303,6 +311,79 @@ contains
              dimids2,tbobs_varid))
         call nc_check( nf90_def_var(ncid, CA_NAME, NF90_REAL, & 
              dimids3,ca_varid))
+        if(ldiagout)then
+            !1: u,u-wind;
+            !2: v,v-wind;
+            !3: t,potential temperature;
+            !4: qv,qvapor;
+            !5: qr, qrain;
+            !6: qs, qsnow;
+            !7: qg, qgraup;
+            !8: qh, qhail;
+            !9: qc, qcloud;
+            !10: qi, qice;
+            !11: pmid, mid layer pressure;
+            !12: hgt, geopotential height;
+            call nc_check( nf90_def_var(ncid, "u", NF90_REAL, &
+             dimids4,temp_varid(1)))
+            call nc_check( nf90_put_att(ncid,temp_varid(1), 'units', 'm s-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(1), 'name', 'u-wind') )
+            !
+            call nc_check( nf90_def_var(ncid, "v", NF90_REAL, &
+             dimids4,temp_varid(2)))
+            call nc_check( nf90_put_att(ncid,temp_varid(2), 'units', 'm s-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(2), 'name', 'v-wind') )
+            !
+            call nc_check( nf90_def_var(ncid, "t", NF90_REAL, &
+             dimids4,temp_varid(3)))
+            call nc_check( nf90_put_att(ncid,temp_varid(3), 'units', 'K') )
+            call nc_check( nf90_put_att(ncid,temp_varid(3), 'name', 'potential temperature') )
+            !
+            call nc_check( nf90_def_var(ncid, "qv", NF90_REAL, &
+             dimids4,temp_varid(4)))
+            call nc_check( nf90_put_att(ncid,temp_varid(4), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(4), 'name', 'Water vapor mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qr", NF90_REAL, &
+             dimids4,temp_varid(5)))
+            call nc_check( nf90_put_att(ncid,temp_varid(5), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(5), 'name', 'Rain water mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qs", NF90_REAL, &
+             dimids4,temp_varid(6)))
+            call nc_check( nf90_put_att(ncid,temp_varid(6), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(6), 'name', 'SNOW mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qg", NF90_REAL, &
+             dimids4,temp_varid(7)))
+            call nc_check( nf90_put_att(ncid,temp_varid(7), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(7), 'name', 'Graupel mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qh", NF90_REAL, &
+             dimids4,temp_varid(8)))
+            call nc_check( nf90_put_att(ncid,temp_varid(8), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(8), 'name', 'HAIL mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qc", NF90_REAL, &
+             dimids4,temp_varid(9)))
+            call nc_check( nf90_put_att(ncid,temp_varid(9), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(9), 'name', ' cloud water mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "qi", NF90_REAL, &
+             dimids4,temp_varid(10)))
+            call nc_check( nf90_put_att(ncid,temp_varid(10), 'units', 'kg kg-1') )
+            call nc_check( nf90_put_att(ncid,temp_varid(10), 'name', 'ice mixing ratio') )
+            !
+            call nc_check( nf90_def_var(ncid, "pmid", NF90_REAL, &
+             dimids4,temp_varid(11)))
+            call nc_check( nf90_put_att(ncid,temp_varid(11), 'units', 'Pa') )
+            call nc_check( nf90_put_att(ncid,temp_varid(11), 'name', 'pressure') )
+            !
+            call nc_check( nf90_def_var(ncid, "hgt", NF90_REAL, &
+             dimids4,temp_varid(12)))
+            call nc_check( nf90_put_att(ncid,temp_varid(12), 'units', 'm2 s-2') )
+            call nc_check( nf90_put_att(ncid,temp_varid(12), 'name', 'geopotential') )
+        endif
         ! Assign units attributes to the netCDF variables.
         call nc_check( nf90_put_att(ncid, latgrid_varid, 'units', 'degrees_north') )
         call nc_check( nf90_put_att(ncid, longrid_varid, 'units', 'degrees_east') )
@@ -332,7 +413,38 @@ contains
         count3 = (/e_w,s_n,nc/)
         start3= (/ 1, 1 ,1 /)
         call nc_check( nf90_put_var(ncid, ca_varid, ca ))
-
+        ! if diagout
+        if(ldiagout)then
+            count3 = (/e_w,s_n,nsig/)
+            start3= (/ 1, 1 ,1 /)
+            ! Define the netCDF variables
+            ! Assign units attributes to the netCDF variables.
+            ! Write the pretend data.
+            !1: u,u-wind;
+            !2: v,v-wind;
+            !3: t,potential temperature;
+            !4: qv,qvapor;
+            !5: qr, qrain;
+            !6: qs, qsnow;
+            !7: qg, qgraup;
+            !8: qh, qhail;
+            !9: qc, qcloud;
+            !10: qi, qice;
+            !11: pmid, mid layer pressure;
+            !12: hgt, geopotential height;
+            call nc_check( nf90_put_var(ncid, temp_varid(1), u,     start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(2), v,     start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(3), t,     start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(4), qv,    start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(5), qrges, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(6), qsges, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(7), qgges, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(8), qhges, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(9), qlges, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(10), qiges,start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(11), pmid, start3, count3) )
+            call nc_check( nf90_put_var(ncid, temp_varid(12), hgt,  start3, count3) )
+        end if
         !
         call nc_check( nf90_close(ncid) )
 
