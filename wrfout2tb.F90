@@ -63,12 +63,12 @@ print*,"GRID RATIO:",grid_ratio
 print*,"MP_PHYSICS:",imp_physics
 !
 call read_goesabi_netcdf()
-call read_abiobsarray_from_file()
-print*,"min/max of tb channel 7 ",minval(data_obsabi(36,:)),maxval(data_obsabi(36,:))
-print*,"min/max of tb channel 8 ",minval(data_obsabi(37,:)),maxval(data_obsabi(37,:))
-print*,"min/max of tb channel 10 ",minval(data_obsabi(39,:)),maxval(data_obsabi(39,:))
-print*,"min/max of tb obs  lon ",minval(data_obsabi(30,:)),maxval(data_obsabi(30,:))
-print*,"min/max of tb obs  lat ",minval(data_obsabi(31,:)),maxval(data_obsabi(31,:))
+!call read_abiobsarray_from_file()
+!print*,"min/max of tb channel 7 ",minval(data_obsabi(36,:)),maxval(data_obsabi(36,:))
+!print*,"min/max of tb channel 8 ",minval(data_obsabi(37,:)),maxval(data_obsabi(37,:))
+!print*,"min/max of tb channel 10 ",minval(data_obsabi(39,:)),maxval(data_obsabi(39,:))
+!print*,"min/max of tb obs  lon ",minval(data_obsabi(30,:)),maxval(data_obsabi(30,:))
+!print*,"min/max of tb obs  lat ",minval(data_obsabi(31,:)),maxval(data_obsabi(31,:))
 
 !
 call setuprad()

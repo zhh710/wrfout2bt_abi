@@ -200,6 +200,24 @@ module read_wrf
             ! temperature ,K
             allocate(tk(nx,ny,nz),stat=istatus)
             if(istatus/=0)write(6,*)"ALLOCATE tk(nx,ny,nz) error"
+            ! rain,kg kg-1
+            allocate(qr(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qr(nx,ny,nz) error"
+            ! cloud ice,kg kg-1
+            allocate(qi(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qi(nx,ny,nz) error"
+            ! snow,kg kg-1
+            allocate(qs(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qs(nx,ny,nz) error"
+            ! graup,kg kg-1
+            allocate(qg(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qg(nx,ny,nz) error"
+            ! hail,kg kg-1
+            allocate(qh(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qh(nx,ny,nz) error"
+            ! q cloud,kg kg-1
+            allocate(qc(nx,ny,nz),stat=istatus)
+            if(istatus/=0)write(6,*)"ALLOCATE qc(nx,ny,nz) error"
             !U wind, m/s
             allocate(u(nx,ny,nz),stat = istatus)
             if(istatus/=0)write(6,*)"ALLOCATE u(nx,ny,nz) error"
@@ -249,6 +267,12 @@ module read_wrf
             if(allocated(sfc_rough_full))deallocate(sfc_rough_full,stat=istatus)
             if(allocated(isli_full))deallocate(isli_full,stat=istatus)
             if(allocated(fact10_full))deallocate(fact10_full,stat=istatus)
+            if(allocated(qr))deallocate(qr,stat=istatus)
+            if(allocated(qc))deallocate(qc,stat=istatus)
+            if(allocated(qi))deallocate(qi,stat=istatus)
+            if(allocated(qs))deallocate(qs,stat=istatus)
+            if(allocated(qg))deallocate(qg,stat=istatus)
+            if(allocated(qh))deallocate(qh,stat=istatus)
             !
             print*,"DESTORY 3D ARRAY"
             if(allocated(pmid))deallocate(pmid,stat=istatus)
@@ -333,6 +357,13 @@ module read_wrf
             pmid = tmp1_3d +tmp2_3d
             deallocate(tmp1_3d,stat=istatus)
             deallocate(tmp2_3d,stat =istatus)
+            ! cloud al. etc
+            call  get_ncd_3d(ncid,1,"QRAIN",nx,ny,nz,qr,istatus)
+            call  get_ncd_3d(ncid,1,"QCLOUD",nx,ny,nz,qc,istatus)
+            call  get_ncd_3d(ncid,1,"QICE",nx,ny,nz,qi,istatus)
+            call  get_ncd_3d(ncid,1,"QSNOW",nx,ny,nz,qs,istatus)
+            call  get_ncd_3d(ncid,1,"QGRAUP",nx,ny,nz,qg,istatus)
+            call  get_ncd_3d(ncid,1,"QHAIL",nx,ny,nz,qh,istatus)
             ! Calculate Pressure on full levels
             call get_full_pressure()
             ! READ U, m/s

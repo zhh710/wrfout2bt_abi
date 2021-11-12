@@ -32,6 +32,7 @@ module module_abi
     use read_wrf,only: qiges=>qi,qhges=>qh,qlges=>qc
     use read_wrf,only: iadate=>idates
     use read_wrf,only: lon,lat
+    use read_wrf,only: ozges=>oz
     !
     use goesabi_obs,only: data_s=>data_obsabi
     use goesabi_obs,only: read_abiobsarray_from_file
@@ -129,6 +130,7 @@ contains
         tsim_clr=0.
 !!$omp parallel do  schedule(dynamic,1) private(n,i)
         do n=1,nabiobs
+        !do n=1,5
         ! init arrays
             call  call_crtm(obstype,iadate,data_s(:,n),nchanl,nreal, &
              &   mype, lon2,lat2,&            
@@ -140,7 +142,8 @@ contains
              &   tsim,emissivity,ptau5,ts, &
              &   emissivity_k,temp,wmix,jacobian,error_status,tsim_clr=tsim_clr, &
              &   qrges=qrges,qsges=qsges,qgges=qgges,qiges=qiges,                &
-             &   qhges=qhges,qlges=qlges) 
+             &   qhges=qhges,qlges=qlges,ozges=ozges) 
+        !     &   qhges=qhges,qlges=qlges) 
              !print*,'Simulated TB CLEAR: ',tsim_clr
              !print*,'Simulated TB ALL SKY: ',tsim
              !print*,"OBS TB      : ",data_s(nreal+1:nreal+nchanl,n)
