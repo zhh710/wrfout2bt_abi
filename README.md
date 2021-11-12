@@ -1,1 +1,2 @@
-# wrfout2bt_abi
+
+1. prepare data for crtm
