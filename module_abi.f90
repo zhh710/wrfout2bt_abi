@@ -123,7 +123,7 @@ contains
         allocate(tb_clr(nabiobs,nchanl))
         allocate(tb_obs(nabiobs,nchanl))
         allocate(ca_obs(nchanl,nabiobs))
-        allocate(ca_grid(nchanl,lat2,lon2))
+        allocate(ca_grid(lat2,lon2,nchanl))
         allocate(lonobs(nabiobs))
         allocate(latobs(nabiobs))
         tsim=0.
@@ -166,7 +166,7 @@ contains
          call calc_ca_2019(tb_obs,tb_clr,tb_cld,ca_obs,nabiobs,nchanl)
          do i=1,nchanl
              if(i == 1)call cressman_lookup(latobs,lonobs,ca_obs(i,:),nabiobs,lat,lon,lat2,lon2,15.,-999)
-             call interp_cressman(latobs,lonobs,ca_obs(i,:),nabiobs,lat,lon,ca_grid(i,:,:),lat2,lon2,15.,-999.)
+             call interp_cressman(latobs,lonobs,ca_obs(i,:),nabiobs,lat,lon,ca_grid(:,:,i),lat2,lon2,15.,-999.)
          end do
          ! write out
          call write_tb(tb_cld,tb_clr,tb_obs,lonobs,latobs,lon,lat,ca_grid,nabiobs,nchanl,lat2,lon2)
@@ -237,7 +237,7 @@ contains
         real(r_kind),dimension(nobs   ),intent(in   ):: latobs
         real(r_kind),dimension(n1,n2  ),intent(in   ):: lon
         real(r_kind),dimension(n1,n2  ),intent(in   ):: lat
-        real(r_kind),dimension(nc,n1,n2),intent(in  ):: ca
+        real(r_kind),dimension(n1,n2,nc),intent(in  ):: ca
         !
         character (len = *), parameter :: EW_NAME = "east_west"
         character (len = *), parameter :: SN_NAME = "south_north"
@@ -283,9 +283,9 @@ contains
         call nc_check( nf90_def_dim(ncid, SN_NAME, s_n, sn_dimid) )
         call nc_check( nf90_def_dim(ncid, NOBS_NAME,nobs, nobs_dimid) )
         call nc_check( nf90_def_dim(ncid, CHANNEL_NAME, nc, ch_dimid) )
-        dimids1 = (/ sn_dimid,ew_dimid/)
+        dimids1 = (/ ew_dimid,sn_dimid/)
         dimids2 = (/ nobs_dimid, ch_dimid /)
-        dimids3 = (/ ch_dimid,sn_dimid,ew_dimid/)
+        dimids3 = (/ ew_dimid,sn_dimid,ch_dimid/)
         !! Define the netCDF variables
         call nc_check( nf90_def_var(ncid, LON_NAME, NF90_REAL, & 
              dimids1,longrid_varid))
@@ -315,7 +315,7 @@ contains
         !! End define mode.
         call nc_check( nf90_enddef(ncid) )
         !
-        count0 = (/s_n,e_w/)
+        count0 = (/e_w,s_n/)
         start = (/ 1, 1  /)
         ! Write the pretend data.
         call nc_check( nf90_put_var(ncid, longrid_varid, lon, start, count0) )
@@ -329,7 +329,7 @@ contains
         call nc_check( nf90_put_var(ncid, lonobs_varid, lonobs))
         call nc_check( nf90_put_var(ncid, latobs_varid, latobs ))
         !
-        count3 = (/nc,s_n,e_w/)
+        count3 = (/e_w,s_n,nc/)
         start3= (/ 1, 1 ,1 /)
         call nc_check( nf90_put_var(ncid, ca_varid, ca ))
 

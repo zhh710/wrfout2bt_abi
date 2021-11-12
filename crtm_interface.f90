@@ -1571,7 +1571,7 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
         do ig=1,n_ghg
            j=min_n_absorbers+ ig
            ! default value for CO2
-           if(j==3)atmosphere(1)%absorber(k,j) = 400.0
+           if(j==3)atmosphere(1)%absorber(k,j) =380.0
            
         enddo
      endif
