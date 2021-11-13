@@ -59,7 +59,7 @@ contains
         logical::cold_start 
         character(10)                          :: obstype
         !
-        integer(i_kind)::n,i
+        integer(i_kind)::n,i,k
         real(r_kind)::obstime
         ! variables used in call_crtm
         real(r_kind),dimension(lat2,lon2)::dsfct
@@ -75,9 +75,15 @@ contains
         real(r_kind),dimension(:,:),allocatable ::jacobian
         ! varibales to write out
         real(r_kind),dimension(:,:),allocatable:: tb_cld,tb_clr,tb_obs
-        real(r_kind),dimension(:,:),allocatable:: ca_obs
-        real(r_kind),dimension(:,:,:),allocatable:: ca_grid
+        real(r_kind),dimension(:,:),allocatable:: ca2019_obs
+        real(r_kind),dimension(:,:),allocatable:: ca2014_obs
+        real(r_kind),dimension(:,:),allocatable:: pwmax_obs
+        real(r_kind),dimension(:,:,:),allocatable:: pwmax_grid
+        real(r_kind),dimension(:,:,:),allocatable:: ca2014_grid,ca2019_grid
         real(r_kind),dimension(:),allocatable:: lonobs,latobs
+        !
+        real(r_kind)::ptau5deriv
+        real(r_kind)::ptau5derivmax
         !
         ! init some variables
         init_pass = .TRUE.
@@ -124,8 +130,12 @@ contains
         allocate(tb_cld(nabiobs,nchanl))
         allocate(tb_clr(nabiobs,nchanl))
         allocate(tb_obs(nabiobs,nchanl))
-        allocate(ca_obs(nchanl,nabiobs))
-        allocate(ca_grid(lat2,lon2,nchanl))
+        allocate(ca2014_obs(nchanl,nabiobs))
+        allocate(ca2019_obs(nchanl,nabiobs))
+        allocate(pwmax_obs(nchanl,nabiobs))
+        allocate(ca2014_grid(lat2,lon2,nchanl))
+        allocate(ca2019_grid(lat2,lon2,nchanl))
+        allocate(pwmax_grid(lat2,lon2,nchanl))
         allocate(lonobs(nabiobs))
         allocate(latobs(nabiobs))
         tsim=0.
@@ -159,19 +169,40 @@ contains
              !
              lonobs(n)=data_s(ilone,n)
              latobs(n)=data_s(ilate,n)
+             ! maximum of weighting function is level at which transmittanc
+             ! (ptau5) is changing the fastest.  This is used for the level
+             !  assignment (needed for vertical localization).
+             do i=1,nchanl
+                 ptau5derivmax = -9.9e31_r_kind
+                 pwmax_obs(i,n) = 0.0_r_kind
+                         !kmax(i) = k
+                 do k=2,nsig
+                     ptau5deriv = abs( (ptau5(k-1,i)-ptau5(k,i))/ &
+                         (log(prsl(k-1))-log(prsl(k))) )
+                     if (ptau5deriv > ptau5derivmax) then
+                         ptau5derivmax = ptau5deriv
+                         !kmax(i) = k
+                         pwmax_obs(i,n) = 10.0*prsi(k) ! cb to mb.
+                     end if
+                 end do
+             end do ! nchanl
+             
              print*,'--------------------------------'
              print*,n
              print*,'--------------------------------'
          enddo ! n=1,nabiobs
 !!$omp barrier
          ! calc cloud effect patameters
-         call calc_ca_2019(tb_obs,tb_clr,tb_cld,ca_obs,nabiobs,nchanl)
+         call calc_ca(tb_obs,tb_clr,tb_cld,ca2019_obs,ca2014_obs,nabiobs,nchanl)
          do i=1,nchanl
-             if(i == 1)call cressman_lookup(latobs,lonobs,ca_obs(i,:),nabiobs,lat,lon,lat2,lon2,15.,-999)
-             call interp_cressman(latobs,lonobs,ca_obs(i,:),nabiobs,lat,lon,ca_grid(:,:,i),lat2,lon2,15.,-999.)
+             if(i == 1)call cressman_lookup(latobs,lonobs,ca2014_obs(i,:),nabiobs,lat,lon,lat2,lon2,30.,-999)
+             call interp_cressman(latobs,lonobs,ca2014_obs(i,:),nabiobs,lat,lon,ca2014_grid(:,:,i),lat2,lon2,30.,-999.)
+             call interp_cressman(latobs,lonobs,ca2019_obs(i,:),nabiobs,lat,lon,ca2019_grid(:,:,i),lat2,lon2,30.,-999.)
+             call interp_cressman(latobs,lonobs,pwmax_obs(i,:),nabiobs,lat,lon,pwmax_grid(:,:,i),lat2,lon2,30.,-999.)
          end do
          ! write out
-         call write_tb(tb_cld,tb_clr,tb_obs,lonobs,latobs,lon,lat,ca_grid,nabiobs,nchanl,lat2,lon2)
+         call write_tb(tb_cld,tb_clr,tb_obs,lonobs,latobs,lon,lat, & 
+              ca2014_grid,ca2019_grid,pwmax_grid,nabiobs,nchanl,lat2,lon2)
 
          ! destory allocatable arrays
          deallocate(h,q,prsl)
@@ -187,21 +218,30 @@ contains
          deallocate(jacobian)
          deallocate(tb_cld)
          deallocate(tb_clr)
-         deallocate(ca_obs)
-         deallocate(ca_grid)
+         deallocate(ca2014_obs)
+         deallocate(ca2019_obs)
+         deallocate(ca2014_grid)
+         deallocate(ca2019_grid)
          deallocate(lonobs)
          deallocate(latobs)
+         deallocate(pwmax_obs)
+         deallocate(pwmax_grid)
          call destroy_crtm()
 
     end subroutine setuprad
     !
-    subroutine calc_ca_2019(yo,hclr,h,ca,nobs,nc)
+    subroutine calc_ca(yo,hclr,h,ca_2019,ca_2014,nobs,nc)
+        !
+        !  ca_2019 = Co - Cm
+        !  ca_2014 = (Co+Cm)/2.
+        !
         implicit none
         integer(i_kind),intent(in   ):: nobs,nc
         real(r_kind),dimension(nobs,nc),intent(in   )::yo
         real(r_kind),dimension(nobs,nc),intent(in   )::hclr
         real(r_kind),dimension(nobs,nc),intent(in   )::h
-        real(r_kind),dimension(nc,nobs),intent(inout)::ca
+        real(r_kind),dimension(nc,nobs),intent(inout)::ca_2019
+        real(r_kind),dimension(nc,nobs),intent(inout)::ca_2014
         !
         !local variables
         integer(i_kind)::n,i
@@ -211,12 +251,14 @@ contains
             do i=1,nc
                 co = abs(yo(n,i)-hclr(n,i))
                 cm = abs(h(n,i)-hclr(n,i))
-                ca(i,n)=co-cm
+                ca_2019(i,n)=co-cm
+                ca_2014(i,n)=(co+cm)*0.5
             enddo
         enddo
-    end subroutine calc_ca_2019
+    end subroutine calc_ca
     !
-    subroutine write_tb(tb_cld,tb_clr,tb_obs,lonobs,latobs,lon,lat,ca,nobs,nc,n1,n2)
+    subroutine write_tb(tb_cld,tb_clr,tb_obs,lonobs,latobs,lon,lat, &
+            ca2014,ca2019,pwmax,nobs,nc,n1,n2)
         use netcdf, only: nf90_create,nf90_close
         use netcdf, only: nf90_clobber
         use netcdf, only: nf90_put_att
@@ -239,7 +281,9 @@ contains
         real(r_kind),dimension(nobs   ),intent(in   ):: latobs
         real(r_kind),dimension(n1,n2  ),intent(in   ):: lon
         real(r_kind),dimension(n1,n2  ),intent(in   ):: lat
-        real(r_kind),dimension(n1,n2,nc),intent(in  ):: ca
+        real(r_kind),dimension(n1,n2,nc),intent(in  ):: ca2014
+        real(r_kind),dimension(n1,n2,nc),intent(in  ):: ca2019
+        real(r_kind),dimension(n1,n2,nc),intent(in  ):: pwmax
         !
         character (len = *), parameter :: EW_NAME = "east_west"
         character (len = *), parameter :: SN_NAME = "south_north"
@@ -253,14 +297,18 @@ contains
         character (len = *), parameter :: LON_NAME = "longrid"
         character (len = *), parameter :: LAT_NAME = "latgrid"
         character (len = *), parameter :: TBOBS_NAME = "tb_obs"
-        character (len = *), parameter :: CA_NAME = "ca_2019"
+        character (len = *), parameter :: CA2019_NAME = "ca_2019"
+        character (len = *), parameter :: CA2014_NAME = "ca_2014"
+        character (len = *), parameter :: PWMAX_NAME = "pwmax"
         character(len=500):: filename
         !
         integer :: ncid
         integer :: longrid_varid, latgrid_varid
         integer :: lonobs_varid, latobs_varid
         integer :: tbcld_varid, tbclr_varid,tbobs_varid
-        integer :: ca_varid,temp_varid(22)
+        integer :: ca2014_varid,temp_varid(22)
+        integer :: ca2019_varid
+        integer :: pwmax_varid
         integer :: ew_dimid, sn_dimid,btp_dimid
         integer :: ch_dimid,nobs_dimid
         !
@@ -309,8 +357,12 @@ contains
              dimids2,tbclr_varid))
         call nc_check( nf90_def_var(ncid, TBOBS_NAME, NF90_REAL, & 
              dimids2,tbobs_varid))
-        call nc_check( nf90_def_var(ncid, CA_NAME, NF90_REAL, & 
-             dimids3,ca_varid))
+        call nc_check( nf90_def_var(ncid, CA2014_NAME, NF90_REAL, & 
+             dimids3,ca2014_varid))
+        call nc_check( nf90_def_var(ncid, CA2019_NAME, NF90_REAL, & 
+             dimids3,ca2019_varid))
+        call nc_check( nf90_def_var(ncid, PWMAX_NAME, NF90_REAL, & 
+             dimids3,pwmax_varid))
         if(ldiagout)then
             !1: u,u-wind;
             !2: v,v-wind;
@@ -392,7 +444,12 @@ contains
         call nc_check( nf90_put_att(ncid, tbcld_varid, 'units', 'K') )
         call nc_check( nf90_put_att(ncid, tbclr_varid, 'units', 'K') )
         call nc_check( nf90_put_att(ncid, tbobs_varid, 'units', 'K') )
-        call nc_check( nf90_put_att(ncid, ca_varid, 'units', 'K') )
+        call nc_check( nf90_put_att(ncid, ca2014_varid, 'units', 'K') )
+        call nc_check( nf90_put_att(ncid, ca2019_varid, 'units', 'K') )
+        call nc_check( nf90_put_att(ncid, pwmax_varid, 'units', 'hPa') )
+        call nc_check( nf90_put_att(ncid, ca2014_varid, 'desc', 'Co=abs(Yo-hclr);Cm=abs(h-hclr);Ca=Co-Cm') )
+        call nc_check( nf90_put_att(ncid, ca2019_varid, 'desc', 'Co=abs(Yo-hclr);Cm=abs(h-hclr);Ca=(Co+Cm)/2.') )
+        call nc_check( nf90_put_att(ncid, pwmax_varid, 'desc', 'weight max level') )
         !! End define mode.
         call nc_check( nf90_enddef(ncid) )
         !
@@ -412,7 +469,9 @@ contains
         !
         count3 = (/e_w,s_n,nc/)
         start3= (/ 1, 1 ,1 /)
-        call nc_check( nf90_put_var(ncid, ca_varid, ca ))
+        call nc_check( nf90_put_var(ncid, ca2019_varid, ca2019 ))
+        call nc_check( nf90_put_var(ncid, ca2014_varid, ca2014 ))
+        call nc_check( nf90_put_var(ncid, pwmax_varid, pwmax ))
         ! if diagout
         if(ldiagout)then
             count3 = (/e_w,s_n,nsig/)
