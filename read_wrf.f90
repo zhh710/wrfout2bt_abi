@@ -395,6 +395,8 @@ module read_wrf
             ! tropopause pressure
             call tpause(pmid,tk,h,tropprs,nx,ny,nz)
             print*,"tropopause pressure: ",minval(tropprs),maxval(tropprs)
+            !ozone
+            call get_ozone()
 
 
         end subroutine load_data
@@ -547,6 +549,40 @@ module read_wrf
                 end do
             enddo
         end subroutine comp_fact10
+        !
+        !interp ozone to model grid
+        !
+        subroutine get_ozone()
+            implicit none
+            integer,parameter::levsiz=59
+            integer,parameter::num_months=12
+            ! ozmimxm: interp to horizontal model grid
+            real,dimension(:,:,:,:),allocatable::ozmixm
+            ! pin: original pressure level ,hPa
+            real,dimension(:),allocatable::pin
+
+            !
+            integer::i,j,k,it
+            !
+            !step1. read data and interp to horizontal model grid
+            !
+            allocate(ozmixm(nx,levsiz,ny,num_months))
+            allocate(pin(levsiz))
+            call oznini(ozmixm,pin,levsiz,num_months,lat,ny,nx)
+            print*,"read_wrf*get_ozone*ozone :"
+            open(66,file='mgrid_ozone.txt',status='replace')
+            do it=1,num_months
+            do k=1,levsiz
+            do j=1,ny
+            do i=1,nx
+                write(66,*)ozmixm(i,k,j,it)
+            enddo
+            enddo
+            enddo
+            enddo
+
+
+        end subroutine get_ozone
         !------------------------------------------------
         !
         ! dim_,dim_id

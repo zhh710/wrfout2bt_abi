@@ -1660,7 +1660,7 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
       print*,myname_,"*cloud_name :",cloud_names(ig),minval(cloud_cont(:,ig)),maxval(cloud_cont(:,ig))
   end do
 
-  !call crtm_atmosphere_inspect(atmosphere)
+  call crtm_atmosphere_inspect(atmosphere)
 
   error_status = 0
   if ( .not. logaod  ) then
