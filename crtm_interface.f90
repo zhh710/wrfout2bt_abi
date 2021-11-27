@@ -1611,6 +1611,8 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
                  if (ii==2 .and. atmosphere(1)%temperature(k)<t0c) &
                     cloud_cont(k,2)=max(1.001_r_kind*1.0E-6_r_kind, cloud_cont(k,2))
               end do
+              ! crtm2.4
+              atmosphere(1)%cloud_fraction(k) = 1.
           endif   
         else 
            if (icmask) then
@@ -1620,7 +1622,13 @@ subroutine call_crtm(obstype,iadate,data_s,nchanl,nreal,&
                      cloud_cont(k,ii)=max(1.001_r_kind*1.0E-6_r_kind, cloud_cont(k,ii))
                  if (trim(cloud_names_fwd(ii))=='qi' .and.  atmosphere(1)%temperature(k)<t0c) &
                      cloud_cont(k,ii)=max(1.001_r_kind*1.0E-6_r_kind, cloud_cont(k,ii))
+                 if (trim(cloud_names_fwd(ii))=='qs' .and.  atmosphere(1)%temperature(k)<t0c) &
+                     cloud_cont(k,ii)=max(1.001_r_kind*1.0E-6_r_kind, cloud_cont(k,ii))
+                 if (trim(cloud_names_fwd(ii))=='qg' .and.  atmosphere(1)%temperature(k)<t0c) &
+                     cloud_cont(k,ii)=max(1.001_r_kind*1.0E-6_r_kind, cloud_cont(k,ii))
               end do
+              ! crtm2.4
+              atmosphere(1)%cloud_fraction(k) = 1.
            end if
         endif
      endif
