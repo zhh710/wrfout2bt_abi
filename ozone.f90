@@ -132,7 +132,7 @@ g = f(k) + a * (y - x(k))
 
 end function lin_interpol2  
 
-SUBROUTINE ozn_time_int(julian,ozmixm,ozmixt,lon2,lat2,levsiz,num_months )
+SUBROUTINE ozn_time_int(julday,ozmixm,ozmixt,lon2,lat2,levsiz,num_months )
 
 ! adapted from oznint from CAM module
 !  input: ozmixm - read from physics_init
@@ -146,44 +146,36 @@ SUBROUTINE ozn_time_int(julian,ozmixm,ozmixt,lon2,lat2,levsiz,num_months )
 
    REAL,  DIMENSION( lon2, levsiz, lat2, num_months ),      &
           INTENT(IN   ) ::                                  ozmixm
-   REAL,    INTENT(IN )      ::        JULIAN
+   integer,    INTENT(IN )      ::        JULDAY
 
    REAL,  DIMENSION( lon2, levsiz, lat2 ), INTENT(OUT  ) :: ozmixt
 
    !Local
-   REAL      :: intJULIAN
    integer   :: np1,np,nm,m,k,i,j
-   integer   :: IJUL
    integer, dimension(12) ::  date_oz
    data date_oz/16, 45, 75, 105, 136, 166, 197, 228, 258, 289, 319, 350/
    real, parameter :: daysperyear = 365.  ! number of days in a year
    real      :: cdayozp, cdayozm
    real      :: fact1, fact2, deltat
+   real:: intjulian
    logical   :: finddate
    logical   :: ozncyc
    CHARACTER(LEN=256) :: msgstr
 
    ozncyc = .true.
-   ! JULIAN starts from 0.0 at 0Z on 1 Jan.
-   intJULIAN = JULIAN + 1.0       ! offset by one day
-! jan 1st 00z is julian=1.0 here
-   IJUL=INT(intJULIAN)
-!  Note that following will drift.
-!    Need to use actual month/day info to compute julian.
-   intJULIAN=intJULIAN-FLOAT(IJUL)
-   IJUL=MOD(IJUL,365)
-   IF(IJUL.EQ.0)IJUL=365
-   intJULIAN=intJULIAN+IJUL
    np1=1
-   finddate=.false.
 
+   intjulian = julday
 !  do m=1,num_months
    do m=1,12
-      if(date_oz(m).gt.intjulian.and..not.finddate) then
+      if(date_oz(m).lt.julday) then
         np1=m
-        finddate=.true.
+      else
+        exit
       endif
    enddo
+   np1=np1+1
+   print*,"ozone.f90: month= ",np1,julday
    cdayozp=date_oz(np1)
 
    if(np1.gt.1) then
