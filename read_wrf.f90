@@ -3,7 +3,7 @@ module read_wrf
     USE netcdf
     use parameters_define,only:wrf_file
     use parameters_define,only:deg2rad
-    use w3nco,only:w3fs21
+    use w3nco,only:w3fs21,w3doxdat
     implicit none
     !3d arrays allocated in init_wrfinput_array
     real(P),allocatable,dimension(:,:,:)::pmid! pressure at mass levels, Pa
@@ -79,7 +79,8 @@ module read_wrf
     real(P)::grid_ratio!  PARENT_GRID_RATIO
     integer(INT32)::imp_physics !MP_PHYSICS
     character(LEN=50)::mminlu
-    integer(INT32)::JULDAY !JULDAY
+    integer(INT32)::JULDAY !JULDAY < 365
+    integer(INT32)::JULIAN !JULIAN
     integer(INT32)::JULYR !JULYR
     integer(INT32)::iwinbgn
     integer(INT32)::idates(5)
@@ -407,6 +408,8 @@ module read_wrf
             implicit none
             character(len=19)::Times
             !integer(INT32)::idates(5)
+            integer(INT32)::jdow,jdoy,jday
+            integer(INT32),dimension(8)::idat
             integer(INT32)::varid
             integer(INT32)::istatus
             p00 = 100000. ! Pa
@@ -431,8 +434,25 @@ module read_wrf
             istatus = nf90_get_var(ncid,varid,Times)
             read(Times,"(I4,1x,I2,1x,I2,1x,I2,1x,I2)")idates
             call w3fs21(idates,iwinbgn)
-            print*,"Idates: ",idates(5)
-
+            !
+            idat(1:5)=idates(1:5)
+            idat(6)=0
+            idat(7)=0
+            idat(8)=0
+            call w3doxdat(idat,jdow,jdoy,jday)
+            !
+            print*,"Time : -----------------"
+            print*,'jdow : ',jdow
+            print*,'jdoy : ',jdoy
+            print*,'jday : ',jday
+            print*,'year : ',idat(1)
+            print*,'month : ',idat(2)
+            print*,'day : ',idat(3)
+            print*,'hour : ',idat(4)
+            print*,'minute : ',idat(5)
+            print*,'julday : ',julday
+            !
+            julian = jday
 
         end subroutine get_base_value
         !
@@ -560,6 +580,8 @@ module read_wrf
             real,dimension(:,:,:,:),allocatable::ozmixm
             ! pin: original pressure level ,hPa
             real,dimension(:),allocatable::pin
+            !ozmixt: interp in time
+            real,dimension(:,:,:),allocatable::ozmixt
 
             !
             integer::i,j,k,it
@@ -570,16 +592,28 @@ module read_wrf
             allocate(pin(levsiz))
             call oznini(ozmixm,pin,levsiz,num_months,lat,ny,nx)
             print*,"read_wrf*get_ozone*ozone :"
-            open(66,file='mgrid_ozone.txt',status='replace')
-            do it=1,num_months
-            do k=1,levsiz
-            do j=1,ny
-            do i=1,nx
-                write(66,*)ozmixm(i,k,j,it)
-            enddo
-            enddo
-            enddo
-            enddo
+            !open(66,file='mgrid_ozone.txt',status='replace')
+            !do it=1,num_months
+            !do k=1,levsiz
+            !do j=1,ny
+            !do i=1,nx
+            !    write(66,*)ozmixm(i,k,j,it)
+            !enddo
+            !enddo
+            !enddo
+            !enddo
+            !
+            !step2. select time
+            !
+            allocate(ozmixt(nx,levsiz,ny))
+            call ozn_time_int(julday,ozmixm,ozmixt,nx,ny,levsiz,num_months )
+            !
+            !step3. interp to model pressure level
+            !
+            call ozn_p_int(pmid ,pin, levsiz, ozmixt, oz,nx,ny,nz)
+            deallocate(ozmixt)
+            deallocate(ozmixm)
+            deallocate(pin)
 
 
         end subroutine get_ozone
