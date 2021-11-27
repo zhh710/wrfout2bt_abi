@@ -156,11 +156,11 @@ contains
              &   qrges=qrges,qsges=qsges,qgges=qgges,qiges=qiges,                &
              &   qhges=qhges,qlges=qlges,ozges=ozges) 
         !     &   qhges=qhges,qlges=qlges) 
-             !print*,'Simulated TB CLEAR: ',tsim_clr
-             !print*,'Simulated TB ALL SKY: ',tsim
-             !print*,"OBS TB      : ",data_s(nreal+1:nreal+nchanl,n)
-             !print*,"Qvapor Sensitive :",minval(wmix),maxval(wmix)
-             !print*,"temperature Sensitive :",minval(temp),maxval(temp)
+             print*,'Simulated TB CLEAR: ',tsim_clr
+             print*,'Simulated TB ALL SKY: ',tsim
+             print*,"OBS TB      : ",data_s(nreal+1:nreal+nchanl,n)
+             print*,"Qvapor Sensitive :",minval(wmix),maxval(wmix)
+             print*,"temperature Sensitive :",minval(temp),maxval(temp)
              do i=1,nchanl
                  tb_cld(n,i) = tsim(i)
                  tb_clr(n,i) = tsim_clr(i)
@@ -190,6 +190,7 @@ contains
              print*,'--------------------------------'
              print*,n
              print*,'--------------------------------'
+             
          enddo ! n=1,nabiobs
 !!$omp barrier
          ! calc cloud effect patameters
