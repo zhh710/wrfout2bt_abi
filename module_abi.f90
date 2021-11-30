@@ -286,7 +286,7 @@ contains
         real(r_kind),dimension(n1,n2,nc),intent(in  ):: ca2019
         real(r_kind),dimension(n1,n2,nc),intent(in  ):: pwmax
         !
-        character (len = *), parameter :: EW_NAME = "east_west"
+        character (len = *), parameter :: EW_NAME = "west_east"
         character (len = *), parameter :: SN_NAME = "south_north"
         character (len = *), parameter :: BTP_NAME = "bottom_top"
         character (len = *), parameter :: NOBS_NAME = "nobs"
